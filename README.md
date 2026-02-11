@@ -1,6 +1,6 @@
 - 👋 Hi, I’m @AndreFroneman
 - 👀 I’m interested in OT Cyber Security, Military and Space Technology and so much more
-- 🌱 I’m currently learning Pentest+, Cloud+, Security+ with Comptia.
+- 🌱 I’m Pentest+, Cloud+, Security+ certified with Comptia.
 - 💞️ I’m looking to collaborate on any projects.
 - 📫 How to reach me, hit me on email, ask and ye shall recieve. 
 
