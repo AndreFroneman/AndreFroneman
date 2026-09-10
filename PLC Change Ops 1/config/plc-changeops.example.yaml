@@ -1,0 +1,30 @@
+server:
+  public_url: https://plc-changeops.example.internal
+  listen_port: 8080
+  log_level: info
+
+git:
+  provider: gitlab
+  repository: controls/mixing-line-4
+  protected_branch: main
+
+policy:
+  minimum_approvals: 2
+  require_clean_tests: true
+  require_verified_rollback: true
+  maintenance_window: "18:00-19:00"
+  timezone: Africa/Johannesburg
+
+edge:
+  adapter: nautilus
+  endpoint: https://line4-edge.example.internal
+  allowed_controller_ids:
+    - mixer-line-4
+
+integrations:
+  ignition:
+    mode: sparkplug-b
+    namespace: factory_a/line_4
+  ethernet_ip:
+    read_timeout_ms: 3000
+    write_enabled: false

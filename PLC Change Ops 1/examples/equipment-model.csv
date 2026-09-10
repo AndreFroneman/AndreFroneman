@@ -1,0 +1,5 @@
+canonical_tag,data_type,equipment,plc_binding,hmi_binding,engineering_unit,minimum,maximum
+MIX01_MTR_SPEED_SP,REAL,mixer_01,Mixer.SpeedSP,mixer_01/speed_sp,rpm,0,1450
+MIX01_MTR_RUNNING,BOOL,mixer_01,Mixer.Running,mixer_01/running,,0,1
+MIX01_TEMP_PV,REAL,mixer_01,Mixer.TempPV,mixer_01/temp_pv,degC,-10,150
+MIX01_TEMP_HH,REAL,mixer_01,Mixer.TempHH,mixer_01/temp_hh,degC,0,120
