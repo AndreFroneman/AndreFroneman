@@ -1,0 +1,94 @@
+# Alert rules. Recommended actions are ANALYST actions (verify, investigate, contact
+# the appropriate operations/security personnel). The platform never recommends
+# military or kinetic security action.
+# Alerts are only raised for events newer than this (avoids floods when back-filling history).
+alert_lookback_days: 14
+
+rules:
+  ZONE_ENTRY:
+    enabled: true
+    min_zone_severity: ELEVATED
+    severity_by_zone: {ELEVATED: MEDIUM, HIGH: HIGH, CRITICAL: CRITICAL}
+    title: "{vessel} entered {zone}"
+    action: >-
+      Confirm the vessel's planned routing and security posture for the area with the
+      operator / DPA. Review current advisories for the zone and verify the vessel has
+      acknowledged relevant guidance. Increase monitoring frequency while in the zone.
+  INCIDENT_PROXIMITY:
+    enabled: true
+    max_km: 100
+    within_hours_after_incident: 72
+    severity_by_km: [{max_km: 50, severity: HIGH}, {max_km: 100, severity: MEDIUM}]
+    title: "{vessel} within {km} km of recent {category} report"
+    action: >-
+      Verify the incident report against additional sources. Notify the operator's
+      security / operations contact that a recent incident was reported near the
+      vessel's position and confirm the vessel is aware. Continue monitoring.
+  AIS_GAP:
+    enabled: true
+    min_anomaly_confidence: 0.5
+    severity: MEDIUM
+    severity_in_zone: HIGH
+    title: "AIS reporting anomaly: {vessel} ({duration})"
+    action: >-
+      Check AIS coverage for the area (other vessels' reporting, satellite AIS
+      availability). Attempt to confirm vessel status with the operator via alternate
+      communications. Do not assume intentional AIS disabling without corroboration.
+  ROUTE_DEVIATION:
+    enabled: true
+    min_confidence: 0.4
+    severity: MEDIUM
+    title: "{vessel} deviating from expected route ({km} km)"
+    action: >-
+      Compare against the declared destination and any routing advice issued to the
+      vessel. Contact the operator to confirm whether the deviation is planned (weather,
+      security routing, commercial instruction).
+  LOITERING:
+    enabled: true
+    min_confidence: 0.45
+    severity: LOW
+    severity_near_asset: HIGH
+    title: "{vessel} loitering ({duration}, avg {speed} kn)"
+    action: >-
+      Review vessel identity, type and history. Check whether the activity is
+      consistent with the vessel's declared purpose (e.g. fishing, waiting orders).
+      Escalate to the asset operator if near protected infrastructure.
+  UNEXPECTED_STOP:
+    enabled: true
+    min_confidence: 0.4
+    severity: MEDIUM
+    title: "{vessel} stopped unexpectedly at sea"
+    action: >-
+      Attempt contact with the operator to confirm vessel status (machinery issue,
+      awaiting orders, drifting). Check for incident reports in the vicinity.
+  RISK_INCREASE:
+    enabled: true
+    min_increase_points: 15
+    window_hours: 24
+    # Only escalations that reach at least this band raise an alert.
+    min_band: ELEVATED
+    severity_by_band: {MODERATE: LOW, ELEVATED: MEDIUM, HIGH: HIGH, SEVERE: CRITICAL}
+    title: "SASH Risk Indicator increase for {vessel}: {before} → {after}"
+    action: >-
+      Review the contributing factors listed in the evidence. Confirm the vessel's
+      situation with the operator and determine whether customer notification or
+      additional monitoring is warranted.
+  ASSET_APPROACH:
+    enabled: true
+    severity_monitoring: MEDIUM
+    severity_security: HIGH
+    title: "{vessel} entered {ring} radius of {asset}"
+    action: >-
+      Identify the vessel (AIS identity, registry, operator) and check whether it is
+      expected at the asset. Notify the asset's control room / security officer for
+      verification. Do not assume hostile intent.
+  DARK_CONTACT:
+    enabled: true
+    severity: MEDIUM
+    title: "Unidentified maritime contact near {asset}"
+    action: >-
+      Attempt correlation with additional sensors (EO/IR, RF). Check for AIS targets
+      that may be mis-associated. Inform the asset control room so that visual
+      verification can be attempted. Treat as UNIDENTIFIED, not hostile.
+
+severity_order: [INFO, LOW, MEDIUM, HIGH, CRITICAL]

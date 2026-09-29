@@ -1,0 +1,3 @@
+Land, coastline and boundary data: Natural Earth (public domain), https://www.naturalearthdata.com/
+Coordinates rounded to 0.001° for size. Boundaries are shown for orientation only.
+Glyphs: Open Sans Semibold (Apache License 2.0), from maplibre/demotiles.

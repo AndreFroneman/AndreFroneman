@@ -1,0 +1,56 @@
+# SASH Ocean port gazetteer (reference data, approximate positions).
+# connect: lane nodes the port links to. approach: optional offshore approach point
+# used when a direct line from the berth to the lane would cross land.
+version: 1
+ports:
+  - {unlocode: EGPSD, name: Port Said, country: EG, lat: 31.26, lon: 32.30, connect: [SUEZ_N]}
+  - {unlocode: EGSUZ, name: Suez, country: EG, lat: 29.95, lon: 32.55, connect: [SUEZ_S]}
+  - {unlocode: SAYNB, name: Yanbu, country: SA, lat: 24.08, lon: 38.05, connect: [RS_1, RS_2], aliases: [YANBU, YANBU AL BAHR]}
+  - {unlocode: SAJED, name: Jeddah, country: SA, lat: 21.48, lon: 39.15, connect: [RS_2], aliases: [JEDDAH, JIDDAH]}
+  - {unlocode: SDPZU, name: Port Sudan, country: SD, lat: 19.60, lon: 37.23, connect: [RS_2, RS_3]}
+  - {unlocode: ERMSW, name: Massawa, country: ER, lat: 15.61, lon: 39.45, connect: [RS_3, RS_4]}
+  - {unlocode: YEHOD, name: Hodeidah, country: YE, lat: 14.83, lon: 42.93, connect: [RS_4, RS_5], aliases: [HODEIDAH, AL HUDAYDAH]}
+  - {unlocode: DJJIB, name: Djibouti, country: DJ, lat: 11.60, lon: 43.14, connect: [BAB, GOA_W]}
+  - {unlocode: YEADE, name: Aden, country: YE, lat: 12.79, lon: 44.98, connect: [GOA_W, BAB]}
+  - {unlocode: SOBBO, name: Berbera, country: SO, lat: 10.44, lon: 45.01, connect: [GOA_W]}
+  - {unlocode: SOBSA, name: Bosaso, country: SO, lat: 11.29, lon: 49.18, connect: [GOA_MID], aliases: [BOSASO, BOSSASO]}
+  - {unlocode: SOMGQ, name: Mogadishu, country: SO, lat: 2.04, lon: 45.34, connect: [SOM_3, EAF_1]}
+  - {unlocode: SCPOV, name: Port Victoria, country: SC, lat: -4.62, lon: 55.46, connect: [EAF_1, SOM_3]}
+  - {unlocode: KEMBA, name: Mombasa, country: KE, lat: -4.06, lon: 39.67, connect: [EAF_C1, EAF_1]}
+  - {unlocode: TZDAR, name: Dar es Salaam, country: TZ, lat: -6.82, lon: 39.29, connect: [EAF_C3], aliases: [DAR ES SALAAM, DAR]}
+  - {unlocode: KMYVA, name: Moroni, country: KM, lat: -11.70, lon: 43.25, connect: [MOZ_1, MOZN]}
+  - {unlocode: MZPOL, name: Pemba, country: MZ, lat: -12.97, lon: 40.52, connect: [MOZ_1, MOZ_2]}
+  - {unlocode: MZNAC, name: Nacala, country: MZ, lat: -14.54, lon: 40.67, connect: [MOZ_2]}
+  - {unlocode: MZBEW, name: Beira, country: MZ, lat: -19.83, lon: 34.84, connect: [MOZ_3, MOZ_4]}
+  - {unlocode: MZMPM, name: Maputo, country: MZ, lat: -25.97, lon: 32.57, approach: [-25.80, 33.10], connect: [MOZ_5]}
+  - {unlocode: MGMJN, name: Mahajanga, country: MG, lat: -15.72, lon: 46.32, connect: [MOZ_2]}
+  - {unlocode: MGTMM, name: Toamasina, country: MG, lat: -18.15, lon: 49.42, connect: [TOAM_OFF], aliases: [TAMATAVE]}
+  - {unlocode: MUPLU, name: Port Louis, country: MU, lat: -20.16, lon: 57.50, connect: [MRU_OFF]}
+  - {unlocode: ZARCB, name: Richards Bay, country: ZA, lat: -28.80, lon: 32.08, connect: [ZA_E1, ZA_DBN]}
+  - {unlocode: ZADUR, name: Durban, country: ZA, lat: -29.87, lon: 31.03, connect: [ZA_DBN], aliases: [DURBAN, ZA DUR]}
+  - {unlocode: ZAELS, name: East London, country: ZA, lat: -33.03, lon: 27.92, connect: [ZA_E3]}
+  - {unlocode: ZAPLZ, name: Gqeberha (Port Elizabeth), country: ZA, lat: -33.96, lon: 25.63, connect: [ZA_PE, ZA_E4], aliases: [PORT ELIZABETH, GQEBERHA]}
+  - {unlocode: ZAZBA, name: Ngqura, country: ZA, lat: -33.80, lon: 25.68, connect: [ZA_PE, ZA_E4], aliases: [COEGA]}
+  - {unlocode: ZAMZY, name: Mossel Bay, country: ZA, lat: -34.18, lon: 22.15, connect: [ZA_S2]}
+  - {unlocode: ZACPT, name: Cape Town, country: ZA, lat: -33.91, lon: 18.43, approach: [-33.84, 18.43], connect: [ZA_CPT], aliases: [CAPE TOWN, CAPETOWN]}
+  - {unlocode: ZASDB, name: Saldanha Bay, country: ZA, lat: -33.03, lon: 17.95, approach: [-33.10, 17.85], connect: [WC_1, ZA_CPT]}
+  - {unlocode: NAWVB, name: Walvis Bay, country: NA, lat: -22.95, lon: 14.50, approach: [-22.85, 14.35], connect: [NAM_WB]}
+  - {unlocode: NALUD, name: Luderitz, country: NA, lat: -26.65, lon: 15.15, connect: [WC_3], aliases: [LUDERITZ]}
+  - {unlocode: AOMSZ, name: Namibe, country: AO, lat: -15.20, lon: 12.15, connect: [ANG_S, ANG_2]}
+  - {unlocode: AOLOB, name: Lobito, country: AO, lat: -12.35, lon: 13.55, connect: [ANG_LOB]}
+  - {unlocode: AOLAD, name: Luanda, country: AO, lat: -8.80, lon: 13.23, approach: [-8.70, 13.15], connect: [ANG_LAD]}
+  - {unlocode: AOSZA, name: Soyo, country: AO, lat: -6.13, lon: 12.35, connect: [ANG_N]}
+  - {unlocode: OMSLL, name: Salalah, country: OM, lat: 16.94, lon: 54.00, connect: [SALALAH_OFF]}
+  - {unlocode: OMMCT, name: Muscat, country: OM, lat: 23.63, lon: 58.57, connect: [GOO_1]}
+  - {unlocode: AEFJR, name: Fujairah, country: AE, lat: 25.17, lon: 56.37, connect: [FUJ_OFF]}
+  - {unlocode: AEJEA, name: Jebel Ali, country: AE, lat: 25.01, lon: 55.05, approach: [25.15, 54.95], connect: [PG_1B]}
+  - {unlocode: SARTA, name: Ras Tanura, country: SA, lat: 26.64, lon: 50.16, connect: [PG_W]}
+  - {unlocode: PKKHI, name: Karachi, country: PK, lat: 24.80, lon: 66.97, connect: [KAR_OFF]}
+  - {unlocode: INNSA, name: Nhava Sheva (Mumbai), country: IN, lat: 18.95, lon: 72.95, connect: [MUM_OFF], aliases: [MUMBAI, NHAVA SHEVA, JNPT]}
+  - {unlocode: LKCMB, name: Colombo, country: LK, lat: 6.95, lon: 79.84, connect: [SL_W]}
+  - {unlocode: MYPKG, name: Port Klang, country: MY, lat: 3.00, lon: 101.39, connect: [MAL_2]}
+  - {unlocode: SGSIN, name: Singapore, country: SG, lat: 1.26, lon: 103.84, connect: [SING]}
+  - {unlocode: NLRTM, name: Rotterdam, country: NL, lat: 51.95, lon: 4.05, connect: [NSEA_S]}
+  - {unlocode: ESALG, name: Algeciras, country: ES, lat: 36.13, lon: -5.44, connect: [GIB]}
+  - {unlocode: NGLOS, name: Lagos, country: NG, lat: 6.43, lon: 3.40, connect: [ATL_S2]}
+  - {unlocode: GHTEM, name: Tema, country: GH, lat: 5.63, lon: 0.02, connect: [ATL_S2]}

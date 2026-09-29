@@ -1,0 +1,31 @@
+# Subscription entitlements. Billing is not implemented; tiers only gate features and
+# rate limits so that billing can be attached later without redesign.
+tiers:
+  COMMUNITY:
+    description: Public incident map with delayed intelligence.
+    features: [incident_map, risk_zones, area_risk]
+    incident_delay_hours: 72
+    api_rate_limit_per_min: 30
+  PROFESSIONAL:
+    description: Watchlists, alerts, Voyage Replay and historical exposure.
+    features:
+      [incident_map, risk_zones, area_risk, vessels, vessel_risk, watchlists, alerts,
+       voyage_replay, historical_exposure, voyage_risk, contacts, assets]
+    incident_delay_hours: 0
+    api_rate_limit_per_min: 300
+  ENTERPRISE:
+    description: API access, fleet analytics, risk reports and custom feeds.
+    features:
+      [incident_map, risk_zones, area_risk, vessels, vessel_risk, watchlists, alerts,
+       voyage_replay, historical_exposure, voyage_risk, contacts, assets, api, reports,
+       fleet_analytics, custom_feeds]
+    incident_delay_hours: 0
+    api_rate_limit_per_min: 1200
+  SENSOR:
+    description: Integration of customer radar/AIS/EO/RF infrastructure.
+    features:
+      [incident_map, risk_zones, area_risk, vessels, vessel_risk, watchlists, alerts,
+       voyage_replay, historical_exposure, voyage_risk, contacts, assets, api, reports,
+       fleet_analytics, custom_feeds, sensor_ingest, edge_nodes]
+    incident_delay_hours: 0
+    api_rate_limit_per_min: 3000
