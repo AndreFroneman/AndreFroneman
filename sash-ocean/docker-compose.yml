@@ -1,0 +1,167 @@
+# SASH Ocean — full MVP stack.
+#   cp .env.example .env   (or ./scripts/init-env.sh to generate random secrets)
+#   docker compose up -d --build
+#   open http://localhost:8080  (or https://localhost:8443 with a self-signed certificate)
+name: sash-ocean
+
+x-hardening: &hardening
+  security_opt: ["no-new-privileges:true"]
+  cap_drop: ["ALL"]
+  restart: unless-stopped
+
+x-backend-env: &backend-env
+  SASH_ENV: ${SASH_ENV:-development}
+  DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-sash}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@db:5432/${POSTGRES_DB:-sash}
+  REDIS_URL: redis://redis:6379/0
+  SASH_JWT_SECRET: ${SASH_JWT_SECRET:?set SASH_JWT_SECRET in .env}
+  SASH_DEMO_MODE: ${SASH_DEMO_MODE:-true}
+  SASH_DEMO_LIVE_FEED: ${SASH_DEMO_LIVE_FEED:-true}
+  SASH_DEMO_RESEED_HOURS: ${SASH_DEMO_RESEED_HOURS:-24}
+  SASH_DEMO_ADMIN_PASSWORD: ${SASH_DEMO_ADMIN_PASSWORD:-}
+  SASH_DEMO_ANALYST_PASSWORD: ${SASH_DEMO_ANALYST_PASSWORD:-}
+  SASH_DEMO_CUSTOMER_PASSWORD: ${SASH_DEMO_CUSTOMER_PASSWORD:-}
+  SASH_ANALYTICS_INTERVAL: ${SASH_ANALYTICS_INTERVAL:-600}
+  SASH_FEED_INTERVAL: ${SASH_FEED_INTERVAL:-60}
+  AIS_API_KEY: ${AIS_API_KEY:-}
+  SASH_CONNECTOR_NGA_ASAM: ${SASH_CONNECTOR_NGA_ASAM:-false}
+  SASH_CONNECTOR_OFAC_SDN: ${SASH_CONNECTOR_OFAC_SDN:-false}
+  SASH_CONNECTOR_OPEN_METEO: ${SASH_CONNECTOR_OPEN_METEO:-false}
+  OPEN_METEO_API_KEY: ${OPEN_METEO_API_KEY:-}
+  SASH_ALERT_WEBHOOK_URL: ${SASH_ALERT_WEBHOOK_URL:-}
+  SASH_LOG_LEVEL: ${SASH_LOG_LEVEL:-INFO}
+
+services:
+  db:
+    image: postgis/postgis:16-3.4-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-sash}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-sash}
+    volumes: ["pgdata:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    security_opt: ["no-new-privileges:true"]
+    restart: unless-stopped
+    networks: [backend]
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      retries: 20
+    read_only: true
+    <<: *hardening
+    cap_add: ["CHOWN", "SETUID", "SETGID"]
+    networks: [backend]
+
+  api:
+    image: sash-ocean/api:0.1.0
+    build: { context: ./backend }
+    environment:
+      <<: *backend-env
+      SASH_DEMO_SEED_ON_START: "false"   # the worker owns demo seeding
+    depends_on:
+      db: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    read_only: true
+    tmpfs: ["/tmp"]
+    <<: *hardening
+    networks: [backend, frontend]
+
+  worker:
+    image: sash-ocean/api:0.1.0
+    command: ["python", "-m", "app.cli", "worker"]
+    environment:
+      <<: *backend-env
+      SASH_DEMO_SEED_ON_START: ${SASH_DEMO_SEED_ON_START:-true}
+    depends_on:
+      api: { condition: service_healthy }
+    healthcheck: { disable: true }
+    read_only: true
+    tmpfs: ["/tmp"]
+    <<: *hardening
+    networks: [backend]
+
+  tls-init:
+    # One-shot: creates a self-signed development certificate if none exists in the volume.
+    # Production: put your real tls.crt / tls.key in the webcerts volume (or bind-mount them).
+    image: sash-ocean/api:0.1.0
+    user: "0:0"
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - >-
+        if [ ! -s /certs/tls.crt ]; then
+        openssl req -x509 -nodes -newkey rsa:2048 -days 365 -subj "/CN=$${SASH_TLS_CN}"
+        -addext "subjectAltName=DNS:$${SASH_TLS_CN},DNS:localhost,IP:127.0.0.1"
+        -keyout /certs/tls.key -out /certs/tls.crt 2>/dev/null
+        && chown 101:101 /certs/tls.key /certs/tls.crt && chmod 600 /certs/tls.key
+        && echo "generated self-signed development certificate";
+        else echo "TLS certificate present"; fi
+    environment:
+      SASH_TLS_CN: ${SASH_TLS_CN:-localhost}
+    volumes: ["webcerts:/certs"]
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: ["ALL"]
+    cap_add: ["CHOWN", "DAC_OVERRIDE", "FOWNER"]
+    restart: "no"
+    networks: [backend]
+
+  web:
+    image: sash-ocean/web:0.1.0
+    build: { context: ./frontend }
+    environment:
+      SASH_TLS_CN: ${SASH_TLS_CN:-localhost}
+      SASH_FORCE_HTTPS: ${SASH_FORCE_HTTPS:-false}
+      SASH_PUBLIC_HTTPS_PORT: ${SASH_HTTPS_PORT:-8443}
+    ports:
+      - "${SASH_HTTP_PORT:-8080}:8080"
+      - "${SASH_HTTPS_PORT:-8443}:8443"
+    depends_on:
+      api: { condition: service_healthy }
+      tls-init: { condition: service_completed_successfully }
+    volumes: ["webcerts:/etc/nginx/certs:ro"]
+    tmpfs: ["/tmp"]
+    <<: *hardening
+    networks: [frontend]
+
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    command: ["--config.file=/etc/prometheus/prometheus.yml", "--storage.tsdb.retention.time=15d"]
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - promdata:/prometheus
+    ports: ["127.0.0.1:${SASH_PROMETHEUS_PORT:-9090}:9090"]
+    <<: *hardening
+    networks: [backend]
+
+  grafana:
+    image: grafana/grafana:11.2.0
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?set GRAFANA_ADMIN_PASSWORD in .env}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafanadata:/var/lib/grafana
+    ports: ["127.0.0.1:${SASH_GRAFANA_PORT:-3000}:3000"]
+    depends_on: [prometheus]
+    <<: *hardening
+    networks: [backend]
+
+volumes:
+  pgdata: {}
+  promdata: {}
+  grafanadata: {}
+  webcerts: {}
+
+networks:
+  backend: {}
+  frontend: {}

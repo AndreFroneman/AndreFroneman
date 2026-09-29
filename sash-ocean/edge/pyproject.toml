@@ -1,0 +1,10 @@
+[project]
+name = "sash-edge"
+version = "0.1.0"
+description = "SASH Ocean Edge: offshore store-and-forward sensor node"
+requires-python = ">=3.11"
+dependencies = ["httpx==0.28.1", "pyais==2.8.2"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

@@ -1,0 +1,53 @@
+# Behavioural anomaly detection parameters. Detected events are OBSERVATIONS plus a
+# cautious INFERENCE; they never assert intent.
+ais_gap:
+  min_gap_minutes: 60
+  # A gap must exceed this multiple of the vessel's own recent median reporting interval.
+  interval_multiplier: 4.0
+  baseline_window: 20
+  default_expected_interval_minutes: 10
+  peer_radius_km: 150
+  peer_good_min_observations: 6
+  max_plausible_speed_kn: 35
+  ongoing_after_minutes: 120
+  in_port_confidence_penalty: 0.3
+
+loitering:
+  radius_km: 6.0
+  max_avg_speed_kn: 3.0
+  min_duration_hours: 3.0
+  min_observations: 5
+  exclude_port_radius_km: 25
+  fishing_confidence_factor: 0.6
+
+route_deviation:
+  # The reference lane network models commercial trading routes; it is meaningless for
+  # small craft that do not follow them.
+  exclude_vessel_types: [fishing, dhow, tug, offshore supply, pilot vessel, sar, research, pleasure craft]
+  threshold_km: 60
+  min_duration_hours: 2.0
+  min_observations: 3
+  sample_step_km: 50
+
+unexpected_stop:
+  stop_speed_kn: 0.8
+  prior_speed_kn: 6.0
+  min_duration_minutes: 60
+  exclude_port_radius_km: 30
+
+voyage_segmentation:
+  port_stay_speed_kn: 1.0
+  port_stay_min_hours: 2.0
+
+incident_proximity:
+  bands_km: [25, 50, 100, 250]
+  time_window_hours: 6
+  max_bracket_gap_hours: 8
+
+asset_monitoring:
+  default_monitoring_radius_km: 10
+  default_security_radius_km: 1
+
+risk_history:
+  step_hours: 1
+  max_points_per_vessel: 400

@@ -1,0 +1,186 @@
+# SASH Maritime Risk Indicator — rules-based model configuration.
+#
+# All weights live here, not in application code. Changing this file changes the
+# config_hash stored with every risk assessment, so each result can be traced back
+# to the exact configuration that produced it.
+#
+# IMPORTANT: this is an explainable, expert-rules decision-support indicator. It has NOT
+# been actuarially validated and must not be presented as an underwriting model.
+model:
+  name: SASH Maritime Risk Indicator
+  version: 0.1.0-rules
+  disclaimer: >-
+    SASH Maritime Risk Indicators provide decision-support intelligence and do not
+    constitute insurance underwriting advice. The indicator is a rules-based,
+    explainable heuristic and has not been actuarially validated.
+
+bands:
+  - {name: LOW, min: 0}
+  - {name: MODERATE, min: 25}
+  - {name: ELEVATED, min: 45}
+  - {name: HIGH, min: 65}
+  - {name: SEVERE, min: 85}
+
+trend:
+  window_hours: 24
+  threshold_points: 5
+
+components:
+  regional_threat: {label: Regional threat, cap: 45}
+  vessel_behaviour: {label: Vessel behaviour, cap: 30}
+  voyage_exposure: {label: Voyage exposure, cap: 20}
+  vessel_profile: {label: Vessel profile, cap: 12}
+  environment: {label: Environment, cap: 8}
+
+# Vulnerability (profile, environment) and exposure factors only matter when the vessel is
+# actually exposed to a threat: inside a designated risk zone or near a recent incident.
+# Background incident density alone does not open the gate.
+context_gated_components: [vessel_profile, environment, voyage_exposure]
+context_gate_rules: [zone_presence, incident_proximity]
+
+rules:
+  zone_presence:
+    component: regional_threat
+    label: Inside designated risk zone
+    points_by_severity: {LOW: 3, MODERATE: 8, ELEVATED: 12, HIGH: 16, CRITICAL: 20}
+
+  incident_proximity:
+    component: regional_threat
+    label: Recent security incident nearby
+    lookback_days: 30
+    tiers:
+      - {max_km: 50, points: 24}
+      - {max_km: 150, points: 20}
+      - {max_km: 300, points: 10}
+    # Linear decay of the points from 1.0 (today) to min_factor (lookback limit).
+    recency_min_factor: 0.4
+    category_weight:
+      hijacking: 1.0
+      kidnapping: 1.0
+      missile_attack: 1.0
+      drone_attack: 1.0
+      piracy: 1.0
+      armed_robbery: 0.9
+      boarding: 0.9
+      maritime_conflict: 0.9
+      mine: 0.9
+      sabotage: 0.8
+      suspicious_approach: 0.7
+      cargo_theft: 0.5
+      infrastructure_incident: 0.5
+      collision: 0.0
+      grounding: 0.0
+    exclude_verification: [RETRACTED]
+    unverified_factor: 0.8
+
+  incident_density:
+    component: regional_threat
+    label: Historical regional incident density
+    radius_km: 400
+    lookback_days: 90
+    points_per_incident: 1.5
+    max_points: 8
+
+  ais_gap:
+    component: vessel_behaviour
+    label: AIS reporting anomaly
+    lookback_hours: 48
+    max_points: 12
+    min_anomaly_confidence: 0.35
+    ongoing_gap_bonus: 3
+
+  route_deviation:
+    component: vessel_behaviour
+    label: Deviation from expected route
+    lookback_hours: 48
+    max_points: 10
+
+  loitering:
+    component: vessel_behaviour
+    label: Low-speed loitering anomaly
+    lookback_hours: 24
+    max_points: 8
+
+  unexpected_stop:
+    component: vessel_behaviour
+    label: Unexpected stop at sea
+    lookback_hours: 24
+    max_points: 6
+
+  identity_inconsistency:
+    component: vessel_behaviour
+    label: Identity inconsistency
+    points_per_issue: 3
+    max_points: 6
+
+  zone_exposure_time:
+    component: voyage_exposure
+    label: Time spent in elevated-risk areas
+    lookback_days: 7
+    min_severity: ELEVATED
+    points_per_hour: 0.12
+    max_points: 10
+
+  night_transit:
+    component: voyage_exposure
+    label: Night transit in threat area
+    min_zone_severity: ELEVATED
+    sun_elevation_deg: -6.0
+    points: 7
+
+  vessel_type:
+    component: vessel_profile
+    label: Vessel type vulnerability
+    points_by_type:
+      crude oil tanker: 5
+      product tanker: 5
+      chemical tanker: 5
+      lng carrier: 4
+      bulk carrier: 4
+      general cargo: 4
+      fishing: 3
+      dhow: 3
+      container ship: 2
+      ro-ro: 2
+      offshore supply: 2
+      tug: 2
+    default_points: 2
+
+  low_transit_speed:
+    component: vessel_profile
+    label: Low transit speed in threat area
+    # Slow vessels have historically been more exposed to boarding attempts.
+    max_speed_kn: 15.0
+    min_speed_kn: 3.0
+    points: 4
+
+  vessel_incident_history:
+    component: vessel_profile
+    label: Vessel involved in previous incidents
+    lookback_days: 730
+    points_per_incident: 4
+    max_points: 8
+
+  sea_state:
+    component: environment
+    label: Sea state conducive to small-craft operations
+    max_wave_height_m: 1.5
+    points: 4
+    max_distance_km: 300
+    max_age_hours: 9
+
+  low_visibility:
+    component: environment
+    label: Reduced visibility
+    max_visibility_km: 2.0
+    points: 3
+    max_distance_km: 300
+    max_age_hours: 9
+
+confidence:
+  base: 0.9
+  stale_position_hours: 6
+  stale_penalty: 0.25
+  missing_environment_penalty: 0.05
+  missing_profile_penalty: 0.05
+  synthetic_note: Synthetic demonstration data — not live intelligence.
