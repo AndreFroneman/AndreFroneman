@@ -66,10 +66,9 @@ jobs:
           docker build -t sash-ocean/api:ci sash-ocean/backend
           docker build -t sash-ocean/web:ci sash-ocean/frontend
           docker build -t sash-ocean/edge:ci sash-ocean/edge
-      - name: Scan images (Trivy)
-        uses: aquasecurity/trivy-action@0.28.0
-        with:
-          image-ref: sash-ocean/api:ci
-          severity: CRITICAL
-          ignore-unfixed: true
-          exit-code: "0"
+      - name: Scan images (Trivy, official container image)
+        run: |
+          for img in sash-ocean/api:ci sash-ocean/web:ci; do
+            docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:0.56.2 \
+              image --severity CRITICAL --ignore-unfixed --exit-code 0 --no-progress "$img"
+          done
