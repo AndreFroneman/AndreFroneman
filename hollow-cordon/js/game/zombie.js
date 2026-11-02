@@ -53,6 +53,136 @@ const THEME_OUTFITS = {
   tunnels: [['civ', 0.7], ['worker', 0.3]],
   checkpoint: [['soldier', 0.4], ['civ', 0.6]],
 };
+// ---------------------------------------------------------------------
+//  Special infected
+// ---------------------------------------------------------------------
+function zArmor(z, bone, dmg, o, hx, hy, dx, dy) {
+  const def = o.def || {}, pen = def.pen || 10, g = z.game;
+  if (bone === 'head' && z.helmetHp > 0) {
+    if (pen >= 120 || (o.kind === 'melee' && def.heavy)) { z.popHelmet(dx, dy); return dmg; }
+    z.helmetHp -= dmg;
+    g.fx.sparks(hx, hy, -dx, -dy, 7); Sfx.play('ric', { x: hx, y: hy, vol: 0.6 });
+    z._armored = true;
+    if (z.helmetHp <= 0) z.popHelmet(dx, dy);
+    return dmg * (pen > 40 ? 0.3 : 0.06);
+  }
+  if (bone === 'torso' && z.vestHp > 0) {
+    z.vestHp -= dmg;
+    g.fx.sparks(hx, hy, -dx, -dy, 3, 'rgba(200,200,200,0.8)'); Sfx.play('hit_metal', { x: hx, y: hy, vol: 0.4 });
+    z._armored = true;
+    return dmg * (pen > 60 ? 0.6 : 0.28);
+  }
+  return undefined;
+}
+OUTFITS.riot = () => ({ shirtType: 'uniform', shirt: '#1a1e26', sleeve: 'long', armor: true, pants: '#14161c', shoeType: 'boot', shoes: '#0e0e0e', helmet: 'riot', gloves: '#121212', kneepads: true });
+OUTFITS.soldierFull = () => Object.assign(OUTFITS.soldier(), { helmet: 'mil' });
+OUTFITS.brute = () => ({ shirtType: 'tank', shirt: '#5a5048', sleeve: 'none', pants: pick(['#2a2a2a', '#3a3428', '#2a3040']), shoeType: 'bare' });
+OUTFITS.bloater = () => ({ shirtType: 'tank', shirt: pick(['#8a8470', '#6a6a5a']), sleeve: 'none', pants: pick(['#3a3a40', '#4a4030']), pantsType: 'pants', shoeType: 'shoe', shoes: '#1a1410' });
+
+Object.assign(ZTYPES, {
+  riot: {
+    name: 'Riot Officer', desc: 'Visored helmet and body armour shrug off rounds until shot away. Aim for the legs — or bring penetration.',
+    scale: [0.98, 1.06], build: [1.05, 1.15], hp: 150, headHp: 50, armHp: 55, legHp: 70, speed: [34, 50], dmg: 18, wind: 0.5, rec: 0.7,
+    reach: 52, sight: 520, hear: 1, stagger: 180, knock: 520, bash: 28, score: 25, cash: 35, gait: 'shamble', mass: 1.2, outfit: 'riot', groan: 'z_groan',
+    init(z) { z.helmetHp = 140; z.vestHp = 220; }, armor: zArmor,
+  },
+  soldier: {
+    name: 'Fallen Soldier', desc: 'Cordon troops who turned at their posts. Helmeted, plated and still moving at a jog.',
+    scale: [0.98, 1.05], build: [1.0, 1.1], hp: 160, headHp: 55, armHp: 60, legHp: 75, speed: [85, 115], dmg: 20, wind: 0.35, rec: 0.5,
+    reach: 50, sight: 650, hear: 1.2, stagger: 170, knock: 480, bash: 26, score: 30, cash: 40, gait: 'jog', mass: 1.15, outfit: 'soldierFull', groan: 'z_growl',
+    init(z) { z.helmetHp = 90; z.vestHp = 180; }, armor: zArmor,
+  },
+  brute: {
+    name: 'Brute', desc: 'A swollen mass of muscle and tumour. Charges, smashes barricades in a few blows and shrugs off small arms.',
+    scale: [1.32, 1.42], build: [1.45, 1.6], limbScale: 1.04, hp: 720, headHp: 230, armHp: 260, legHp: 320, speed: [55, 68], dmg: 36, wind: 0.65, rec: 0.9,
+    reach: 66, sight: 600, hear: 1, stagger: 800, knock: 2600, bash: 95, score: 120, cash: 130, gait: 'stomp', mass: 3.2, wide: 1.4, outfit: 'brute', alert: 'brute_roar', groan: 'z_growl',
+    knockback: 520, decay: 1,
+    lookMod(L) { L.skin = pick(['#8a7a70', '#7d7468', '#86786a']); L.shirt = shade(L.skin, -0.25); L.hairStyle = 'bald'; L.jawOpen = 3.6; L.blood = 1; },
+    behave(z, dt, move) {
+      const p = z.game.player;
+      z.chargeCd = (z.chargeCd || rand(2, 4)) - dt;
+      if (z.chargeT > 0) {
+        z.chargeT -= dt;
+        if (p && !p.dead && !z.chargeHit && Math.abs(p.x - z.x) < z.def.reach * z.s + 10 && p.y > z.y - z.h && p.y - p.h < z.y + 10) {
+          z.chargeHit = true; z.chargeT = 0.15;
+          p.hurt(z.def.dmg * 1.3 * z.game.diff.dmgMul, z.face, z, false, 700);
+          z.game.shake(14); Sfx.play('melee_blunt', { x: p.x, y: p.y - 60 });
+        }
+        return z.face;
+      }
+      if (p && !p.dead && z.sees && z.grounded && z.chargeCd <= 0 && Math.abs(p.x - z.x) > 170 && Math.abs(p.x - z.x) < 480 && Math.abs(p.y - z.y) < 40) {
+        z.chargeT = 1.2; z.chargeCd = rand(6, 9); z.chargeHit = false; z.face = Math.sign(p.x - z.x);
+        Sfx.play('brute_roar', { x: z.x, y: z.y, vol: 1 });
+        return z.face;
+      }
+      return move;
+    },
+  },
+  bloater: {
+    name: 'Bloater', desc: 'Gas-bloated host that bursts into caustic bile when killed. Kill it at range — never next to you.',
+    scale: [1.05, 1.15], build: [1.25, 1.35], hp: 110, headHp: 45, armHp: 45, legHp: 60, speed: [26, 40], dmg: 12, wind: 0.6, rec: 0.8,
+    reach: 50, sight: 480, hear: 1, stagger: 220, knock: 900, bash: 18, score: 30, cash: 40, gait: 'waddle', mass: 1.6, outfit: 'bloater', groan: 'gurgle', alert: 'gurgle',
+    lookMod(L) { L.skin = pick(['#7f8a5a', '#8a8a5e', '#7a865c']); L.fat = true; L.decay = 0.75; },
+    onDeath(z) { Combat.bile(z.game, z.x, z.y - z.h * 0.5, 175, 60, z); return 'gib'; },
+    drawExtra(z, ctx) {
+      const j = z.body.j, t = z.game.time;
+      for (let i = 0; i < 4; i++) {
+        const k = 0.25 + i * 0.17;
+        const x = z.x + lerp(j.pelvis.x, j.neck.x, k) * z.face + z.face * z.body.d.torsoT * (0.42 + (i % 2) * 0.08), y = z.y + lerp(j.pelvis.y, j.neck.y, k) + (i % 2 ? -3 : 3);
+        const r = 3.2 + Math.sin(t * 3 + i) * 0.6;
+        ctx.fillStyle = '#6a7a2a'; ctx.beginPath(); ctx.arc(x, y, r + 1, 0, TAU); ctx.fill();
+        ctx.fillStyle = '#c8d050'; ctx.beginPath(); ctx.arc(x - 0.6, y - 0.6, r * 0.55, 0, TAU); ctx.fill();
+      }
+      if (Math.random() < 0.04) z.game.fx.add(P.BILE, z.x + z.face * 10, z.y - z.h * 0.45, rand(-20, 20), 20, 1, 1.5);
+    },
+  },
+  shrieker: {
+    name: 'Shrieker', desc: 'Hangs back and screams — summoning more infected and driving those nearby into a frenzy. Kill it first.',
+    scale: [0.92, 1.0], build: [0.72, 0.8], limbScale: 1.08, hp: 85, headHp: 30, armHp: 35, legHp: 45, speed: [75, 95], dmg: 8, wind: 0.4, rec: 0.6,
+    reach: 44, sight: 760, hear: 1.4, stagger: 90, knock: 300, bash: 10, score: 40, cash: 55, gait: 'shamble', mass: 0.8, groan: 'z_hiss', alert: 'z_scream',
+    lookMod(L) { L.skin = pick(['#a8aa98', '#9ea294']); L.hairStyle = 'long'; L.hair = pick(['#1a1410', '#3a2a1a', '#6a6a60']); L.jawOpen = 4.6; L.eyeGlow = '#f0e8c8'; L.shirtType = 'gown'; L.shirt = '#8a8a80'; L.pantsType = 'bare'; L.shoeType = 'bare'; },
+    init(z) { z.screamCd = rand(2.5, 5); },
+    behave(z, dt, move) {
+      const p = z.game.player;
+      z.screamCd -= dt;
+      if (!p || p.dead) return move;
+      const dx = p.x - z.x, d = Math.abs(dx), same = Math.abs(p.y - z.y) < 80;
+      if (z.sees && z.screamCd <= 0 && d < 850) { z.setState('scream', 1.7); z.screamed = false; z.screamCd = rand(12, 16); z.face = Math.sign(dx) || z.face; return 0; }
+      if (same && z.sees) { if (d < 300) return -Math.sign(dx); if (d < 470) return 0; }
+      return move;
+    },
+    drawExtra(z, ctx) {
+      if (!(z.ringT > 0)) return;
+      const j = z.body.j, x = z.x + j.head.x * z.face, y = z.y + j.head.y;
+      const k = 1 - z.ringT / 0.9;
+      ctx.save(); ctx.globalCompositeOperation = 'lighter';
+      for (let i = 0; i < 3; i++) { const r = 20 + (k + i * 0.2) * 260; ctx.strokeStyle = `rgba(255,230,200,${Math.max(0, 0.35 - k * 0.35 - i * 0.08)})`; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.stroke(); }
+      ctx.restore();
+    },
+  },
+  leaper: {
+    name: 'Leaper', desc: 'Long-limbed hunter that stalks low and pounces from several metres away.',
+    scale: [0.98, 1.04], build: [0.78, 0.85], limbScale: 1.15, hp: 95, headHp: 34, armHp: 40, legHp: 50, speed: [120, 150], dmg: 15, wind: 0.25, rec: 0.45,
+    reach: 48, sight: 720, hear: 1.3, stagger: 120, knock: 360, bash: 16, score: 35, cash: 45, gait: 'prowl', mass: 0.9, alert: 'z_hiss', groan: 'z_hiss', jumper: true,
+    lookMod(L) { L.shirtType = 'hoodie'; L.sleeve = 'long'; L.shirt = pick(['#1e2024', '#2a2420', '#22262a']); L.decay = 1; L.eyeGlow = '#e05030'; L.hairStyle = 'wild'; L.jawOpen = 3.8; },
+    init(z) { z.pounceCd = rand(1, 2.5); },
+    behave(z, dt, move) {
+      const p = z.game.player;
+      z.pounceCd -= dt;
+      if (!p || p.dead || !z.grounded) return move;
+      const dx = p.x - z.x, d = Math.abs(dx);
+      if (z.sees && z.pounceCd <= 0 && d > 110 && d < 360 && p.y > z.y - 170 && p.y < z.y + 40) {
+        z.face = Math.sign(dx) || 1;
+        z.vx = z.face * clamp(d * 2.0, 380, 700); z.vy = -430 - Math.max(0, z.y - p.y) * 2.4; z.grounded = false;
+        z.setState('pounce'); z.pounceHit = false; z.pounceCd = rand(2.5, 4);
+        Sfx.play('z_scream', { x: z.x, y: z.y, vol: 0.8, rate: 1.2 });
+        return z.face;
+      }
+      return move;
+    },
+  },
+});
+
 function weighted(list) { let r = Math.random(); for (const [k, w] of list) { r -= w; if (r <= 0) return k; } return list[0][0]; }
 
 function makeZombieLook(type, theme) {
@@ -122,6 +252,16 @@ class Zombie {
     this.updateBBox();
   }
 
+  armorCost(bone) { return bone === 'head' && this.helmetHp > 0 ? 4 : bone === 'torso' && this.vestHp > 0 ? 2.5 : 1; }
+  popHelmet(dx, dy) {
+    if (!this.look.helmet) return;
+    this.helmetHp = 0;
+    const j = this.body.j, hx = this.x + j.head.x * this.face, hy = this.y + j.head.y;
+    this.game.fx.gib(this.look.helmet === 'riot' ? 'helmet' : 'milhelmet', hx, hy, dx * 260 + rand(-60, 60), -rand(220, 380), { r: 7, bleed: 0, sound: 'hit_metal', life: 40 });
+    Sfx.play('metal_bash', { x: hx, y: hy, vol: 0.7 });
+    this.look = Object.assign({}, this.look, { helmet: null, hairStyle: 'buzz' });
+    this.body.look = this.look; this.body.spr = BodyArt.get(this.look, this.body.d);
+  }
   updateHeight() { this.h = this.crawl || this.state === 'down' ? 40 * this.s : this.state === 'vault' ? 70 * this.s : this.standH; }
   armFactor() {
     let k = 1;
@@ -170,33 +310,81 @@ class Zombie {
     }
     this.sees = sees;
   }
+  // can we walk from x0 to x1 at floor height y? (door & window openings count as passable)
+  levelClear(x0, x1, y) {
+    const w = this.game.world, d = Math.abs(x1 - x0);
+    if (d < 2) return true;
+    const dir = Math.sign(x1 - x0);
+    const walls = w.rayDist(x0, y - 60, dir, 0, d) >= d - 1 || w.rayDist(x0, y - 100, dir, 0, d) >= d - 1 || w.rayDist(x0, y - 125, dir, 0, d) >= d - 1;
+    if (!walls) return false;
+    // continuous floor (gaps wider than ~2 columns mean a drop)
+    let miss = 0;
+    for (let x = x0; dir > 0 ? x <= x1 : x >= x1; x += dir * 16) {
+      if (w.floorAt(x, y)) miss = 0; else if (++miss > 2) return false;
+    }
+    return true;
+  }
+  // Dijkstra over stair/ladder endpoints; returns the first link to take
+  planRoute(tx, ty) {
+    const links = this.game.world.links;
+    if (!links.length) return null;
+    const ends = [];
+    const recent = this.game.time - (this.lastLadderT || -99) < 4 ? this.lastLadder : null;
+    for (const L of links) {
+      if (L.kind === 'ladder' && this.crawl) continue;
+      if (L === recent) continue;
+      ends.push({ L, up: true, x: L.bx, y: L.bottom, ox: L.tx, oy: L.top });
+      ends.push({ L, up: false, x: L.tx, y: L.top, ox: L.bx, oy: L.bottom });
+    }
+    const n = ends.length;
+    const dist = new Array(n).fill(Infinity), first = new Array(n).fill(null), done = new Array(n).fill(false);
+    for (let i = 0; i < n; i++) {
+      const e = ends[i];
+      const onProp = this.ground && this.ground.isProp && e.y > this.y && e.y - this.y < 150;
+      if ((Math.abs(e.y - this.y) < 70 && this.levelClear(this.x, e.x, this.y)) || (onProp && this.levelClear(this.x, e.x, e.y))) { dist[i] = Math.abs(e.x - this.x) + Math.abs(e.ox - e.x) + Math.abs(e.oy - e.y); first[i] = e; }
+    }
+    let best = Infinity, bestFirst = null;
+    for (let iter = 0; iter < n; iter++) {
+      let u = -1;
+      for (let i = 0; i < n; i++) if (!done[i] && dist[i] < Infinity && (u < 0 || dist[i] < dist[u])) u = i;
+      if (u < 0) break;
+      done[u] = true;
+      const e = ends[u];
+      // from the far end of this link: can we reach the target?
+      if (Math.abs(ty - e.oy) < 80 && this.levelClear(e.ox, tx, e.oy)) {
+        const c = dist[u] + Math.abs(tx - e.ox);
+        if (c < best) { best = c; bestFirst = first[u]; }
+      }
+      for (let v = 0; v < n; v++) {
+        if (done[v] || ends[v].L === e.L) continue;
+        const f = ends[v];
+        if (Math.abs(f.y - e.oy) > 70 || !this.levelClear(e.ox, f.x, e.oy)) continue;
+        const c = dist[u] + Math.abs(f.x - e.ox) + Math.abs(f.ox - f.x) + Math.abs(f.oy - f.y);
+        if (c < dist[v]) { dist[v] = c; first[v] = first[u]; }
+      }
+    }
+    return bestFirst;
+  }
   navGoal(tx, ty) {
-    // returns x to walk toward; may start ladder climbs
+    // returns x to walk toward; may start ladder climbs / stair traversals
     if (this.navLink) {
       const { L, up, t0 } = this.navLink;
       const endY = up ? L.top : L.bottom, endX = up ? L.tx : L.bx;
-      if ((Math.abs(this.y - endY) < 18 && Math.abs(this.x - endX) < 40) || this.game.time - t0 > 12) this.navLink = null;
+      if ((Math.abs(this.y - endY) < 3 && Math.abs(this.x - endX) < 44 && this.grounded) || this.game.time - t0 > 14) this.navLink = null;
       else return endX;
     }
     const dy = ty - this.y;
-    if (Math.abs(dy) < 80 || this.crawl && Math.abs(dy) < 120) return tx;
-    const up = dy < 0;
-    let best = null, bestScore = Infinity;
-    for (const L of this.game.world.links) {
-      const fromY = up ? L.bottom : L.top, toY = up ? L.top : L.bottom;
-      const fromX = up ? L.bx : L.tx, toX = up ? L.tx : L.bx;
-      if (Math.abs(fromY - this.y) > 70) continue;
-      if (up ? toY > this.y - 60 : toY < this.y + 60) continue;
-      if (L.kind === 'ladder' && this.crawl) continue;
-      const sc = Math.abs(fromX - this.x) + Math.abs(toX - tx) * 0.6;
-      if (sc < bestScore) { bestScore = sc; best = L; }
+    if (Math.abs(dy) < 80 && this.levelClear(this.x, tx, this.y)) return tx;
+    if (dy > 40 && this.ground && this.ground.isProp) return tx; // just step off the vehicle/crate
+    // re-plan a few times a second
+    if (!this.plan || this.game.time - this.planT > 0.6) { this.plan = this.planRoute(tx, ty); this.planT = this.game.time; }
+    const e = this.plan;
+    if (!e) return tx;
+    const fromX = e.x;
+    if (e.L.kind === 'ladder' && Math.abs(this.x - fromX) < 10 && this.state !== 'climb') {
+      this.ladder = e.L; this.climbDir = e.up ? -1 : 1; this.x = fromX; this.plan = null; this.setState('climb');
     }
-    if (!best) return tx;
-    const fromX = up ? best.bx : best.tx;
-    if (best.kind === 'ladder' && Math.abs(this.x - fromX) < 10 && this.state !== 'climb') {
-      this.ladder = best; this.climbDir = up ? -1 : 1; this.x = fromX; this.setState('climb');
-    }
-    if (best.kind === 'stairs' && Math.abs(this.x - fromX) < 30) { this.navLink = { L: best, up, t0: this.game.time }; return up ? best.tx : best.bx; }
+    if (e.L.kind === 'stairs' && Math.abs(this.x - fromX) < 30) { this.navLink = { L: e.L, up: e.up, t0: this.game.time }; this.plan = null; return e.ox; }
     return fromX;
   }
 
@@ -209,7 +397,7 @@ class Zombie {
     this.thinkT -= dt;
     if (this.thinkT <= 0) { this.thinkT = rand(0.15, 0.3); this.perceive(); }
     if (this.burnT > 0) {
-      this.burnT -= dt; this.hp -= 14 * dt;
+      this.burnT -= dt; this.hp -= 10 * dt;
       if (Math.random() < 0.6) g.fx.fire(this.x + rand(-10, 10), this.y - rand(10, this.h), 1, 12);
       if (this.hp <= 0) { this.die({ cause: 'fire', dx: 0, dy: -1, force: 60, burn: 4 }); return; }
     }
@@ -228,6 +416,22 @@ class Zombie {
       case 'getup': if (this.stateT <= 0) this.setState('chase'); this.vx = 0; break;
       case 'stagger': this.vx *= 0.85; if (this.stateT <= 0) this.setState('chase'); break;
       case 'vault': this.updateVault(dt); return;
+      case 'scream': {
+        this.vx *= 0.85;
+        if (p && !p.dead) this.face = Math.sign(p.x - this.x) || this.face;
+        if (!this.screamed && this.stateT < 1.3) this.doScream();
+        if (this.stateT <= 0) this.setState('chase');
+        break;
+      }
+      case 'pounce': {
+        if (p && !p.dead && !this.pounceHit && Math.abs(p.x - this.x) < 40 && p.y > this.y - this.h - 10 && p.y - p.h < this.y + 10) {
+          this.pounceHit = true; this.vx *= 0.2;
+          p.hurt(def.dmg * 1.6 * g.diff.dmgMul, this.face, this, false, 380);
+          Sfx.play('flesh', { x: p.x, y: p.y - 60 }); g.shake(8);
+        }
+        if (this.grounded && this.stateT < -0.15) { this.setState('chase'); this.cool = 0.3; }
+        break;
+      }
       case 'climb': this.updateClimb(dt); return;
       case 'attack': case 'bash': this.updateAttack(dt); break;
       default: {
@@ -236,13 +440,14 @@ class Zombie {
           if (this.state === 'climb') return;
           const dx = gx - this.x;
           if (Math.abs(dx) > 6) { move = Math.sign(dx); this.face = move; }
+          else if (this.ty > this.y + 60 && this.grounded) move = this.face;
           else if (!this.sees && !this.hunt && Math.abs(this.ty - this.y) < 80) { this.aware *= 0.5; if (this.aware < 0.3) this.setState('wander'); }
           if (p && !p.dead && this.sees) this.face = Math.sign(p.x - this.x) || this.face;
           // attack the player
           if (p && !p.dead && this.cool <= 0 && !g.aiFrozen) {
             const reach = def.reach * this.s * (this.biteOnly() ? 0.75 : 1);
             const ddx = p.x - this.x;
-            if (Math.abs(ddx) < reach + p.hw && p.y > this.y - this.h - 20 && p.y - p.h < this.y + 10 && Math.sign(ddx) === this.face) {
+            if (Math.abs(ddx) < reach + p.hw && Math.abs(p.y - this.y) < 60 && Math.sign(ddx) === this.face) {
               this.setState('attack'); this.atkT = 0; this.atkTarget = p; this.atkHit = false;
               Sfx.play('z_attack', { x: this.x, y: this.y, vol: 0.6, rate: 1 / this.s });
               move = 0;
@@ -250,6 +455,7 @@ class Zombie {
               this.vx = this.face * 420; this.vy = -260; this.grounded = false; this.lunging = 0.4;
             }
           }
+          if (def.behave && !g.aiFrozen) move = def.behave(this, dt, move);
         } else {
           // wander / idle
           this.wanderT -= dt;
@@ -260,20 +466,25 @@ class Zombie {
       }
     }
     // locomotion
-    let spd = this.speed * spdMul;
+    let spd = this.speed * spdMul * (this.chargeT > 0 ? 4.5 : 1);
+    if (this.state === 'pounce') move = 0;
     if (this.crawl) spd = Math.min(spd, this.def.gait === 'crawl' ? spd : 60);
     else {
       if (this.legCrippled('legF') || this.legCrippled('legB')) spd *= 0.6;
     }
     if (this.lunging > 0) this.lunging -= dt;
+    else if (this.state === 'pounce') { /* ballistic */ }
     else if (this.grounded || this.crawl) {
       const target = move * spd;
       this.vx = approach(this.vx, target, (this.def.gait === 'sprint' ? 900 : 500) * dt);
     }
     // stairs & dropping through one-way floors toward the target
-    this.useStairs = this.aware > 0.3 && this.ty < this.y - 60;
+    this.useStairs = this.aware > 0.3 && (this.navLink ? this.navLink.up : this.ty < this.y - 60);
     this.dropT = (this.dropT || 0) - dt;
-    if (this.aware > 0.3 && this.ty > this.y + 80 && this.grounded && this.ground && this.ground.oneway) this.dropT = 0.3;
+    if (this.aware > 0.3 && this.grounded && this.ground && this.ground.oneway) {
+      if (this.navLink && !this.navLink.up && !this.ground.stair) this.dropT = 0.3;
+      else if (this.ty > this.y + 80 && !this.navLink && !this.plan) this.dropT = 0.3;
+    }
     this.drop = this.dropT > 0;
     Phys.move(this, dt, g, false);
     if (this.fellOut) { this.dead = true; this.removed = true; return; }
@@ -306,6 +517,13 @@ class Zombie {
   }
   handleBlocked(b, dir) {
     const g = this.game;
+    for (const p of g.props) {
+      if (!(p.isDoor || p.isBarricade) || !p.solid) continue;
+      const near = dir > 0 ? p.x - (this.x + this.hw) : (this.x - this.hw) - (p.x + p.w);
+      if (near < -p.w || near > 26) continue;
+      if (p.y > this.y - 8 || p.y + p.h < this.y - this.h) continue;
+      this.setState('bash'); this.atkT = 0; this.atkTarget = p; this.atkHit = false; return;
+    }
     const win = this.windowAhead(dir);
     if (win) {
       if (win.solid) { this.setState('bash'); this.atkT = 0; this.atkTarget = win; this.atkHit = false; }
@@ -323,7 +541,7 @@ class Zombie {
     const top = b.y;
     const rise = this.y - top;
     const s = this.s;
-    const maxRise = this.crawl ? 34 : 135 * s;
+    const maxRise = this.crawl ? 34 : 140 * Math.max(1, s);
     if (rise > 0 && rise <= maxRise) {
       // a door or barricade standing on top of the obstacle?
       const sx0 = dir > 0 ? b.x - 4 : b.x + b.w - 40, sx1 = dir > 0 ? b.x + 40 : b.x + b.w + 4;
@@ -332,11 +550,12 @@ class Zombie {
         if (p.x + p.w < sx0 || p.x > sx1 || p.y + p.h < top - 6 || p.y > top + 100) continue;
         if (p.solid) { this.setState('bash'); this.atkT = 0; this.atkTarget = p; this.atkHit = false; return; }
       }
-      const narrow = b.w <= 72 && rise <= 64 * s;
-      let destX, destY;
-      if (narrow) { destX = dir > 0 ? b.x + b.w + this.hw + 3 : b.x - this.hw - 3; destY = top; }
-      else { destX = this.x + dir * (this.hw + 16); destY = top; }
-      const headroom = Phys.free(g, destX, destY - 0.5, this.hw, narrow ? 50 : (this.crawl ? 40 * s : this.standH * 0.92));
+      const narrow = (b.w <= 72 && rise <= 64 * s) || (b.isProp && b.w <= 112 && rise <= 72 * s);
+      const opts = [];
+      if (narrow) opts.push([dir > 0 ? b.x + b.w + this.hw + 3 : b.x - this.hw - 3, top, 50]);
+      opts.push([this.x + dir * (this.hw + 16), top, this.crawl ? 40 * s : this.standH * 0.92]);
+      let destX = 0, destY = 0, headroom = false;
+      for (const [ox, oy, hh] of opts) if (Phys.free(g, ox, oy - 0.5, this.hw, hh)) { destX = ox; destY = oy; headroom = true; break; }
       if (headroom) {
         if (b.isProp && b.def && b.def.movable && chance(0.3)) b.push(dir * 60);
         const k = 0.55 + rise / 95;
@@ -349,9 +568,9 @@ class Zombie {
     this.stuckT += 1 / 60;
     if (b.isProp && b.def && b.def.movable && this.stuckT < 1.2) { b.push(dir * 40); return; }
     // furniture in the way that can't be climbed: tear it apart
-    if (b.isProp && b.hp !== undefined && b.hp < 1e8 && this.stuckT > 0.8) { this.setState('bash'); this.atkT = 0; this.atkTarget = b; this.atkHit = false; return; }
+    if (b.isProp && b.hp !== undefined && b.hp < 1e8 && !(b.def && b.def.explosive) && this.stuckT > 0.8) { this.setState('bash'); this.atkT = 0; this.atkTarget = b; this.atkHit = false; return; }
     // too tall — jumpers try to jump
-    if (this.def.gait === 'sprint' && this.grounded && rise < 100) { this.vy = -620; this.grounded = false; }
+    if ((this.def.gait === 'sprint' || this.def.jumper) && this.grounded && rise < (this.def.jumper ? 170 : 100)) { this.vy = this.def.jumper ? -780 : -620; this.grounded = false; }
   }
   updateVault(dt) {
     const v = this.vault, d = this.body.d;
@@ -376,7 +595,7 @@ class Zombie {
     this.updateBBox();
     const endY = this.climbDir < 0 ? L.top : L.bottom;
     if ((this.climbDir < 0 && this.y <= endY) || (this.climbDir > 0 && this.y >= endY)) {
-      this.y = endY; this.vy = 0; this.ladder = null;
+      this.y = endY; this.vy = 0; this.lastLadder = L; this.lastLadderT = this.game.time; this.ladder = null; this.plan = null;
       this.x += (this.tx > this.x ? 1 : -1) * 4;
       this.setState('chase');
       this.cool = 0.5;
@@ -412,6 +631,15 @@ class Zombie {
     }
   }
 
+  doScream() {
+    this.screamed = true; this.ringT = 0.9;
+    const g = this.game;
+    Sfx.play('shriek', { x: this.x, y: this.y, vol: 1.2, range: 4000, force: true });
+    g.noise(this.x, this.y, 3000);
+    g.shake(5);
+    for (const z of g.zombies) if (!z.dead && z !== this && dist(z.x, z.y, this.x, this.y) < 950) { z.buffT = 7; z.aware = 1; z.hunt = true; if (z.state === 'idle' || z.state === 'wander') z.setState('chase'); }
+    if (g.mode.onShriek) g.mode.onShriek(this);
+  }
   // ------------------------------------------------------------- animate
   animate(dt, move, spd) {
     const d = this.body.d, def = this.def;
@@ -428,10 +656,33 @@ class Zombie {
       return;
     }
     const gait = def.gait;
-    const stride = gait === 'sprint' ? 34 : gait === 'stomp' ? 30 : 20;
-    this.phase += dt * (speedNow / (stride * this.s)) * (gait === 'sprint' ? 3.3 : 2.6) + (speedNow < 5 ? 0 : 0);
+    const stride = gait === 'sprint' ? 34 : gait === 'stomp' ? 30 : gait === 'jog' ? 26 : gait === 'prowl' ? 30 : 20;
+    this.phase += dt * (speedNow / (stride * this.s)) * (gait === 'sprint' || gait === 'prowl' ? 3.3 : 2.6);
+    this.ringT = (this.ringT || 0) - dt;
     const limpF = this.legCrippled('legF'), limpB = this.legCrippled('legB');
-    if (gait === 'sprint') {
+    if (gait === 'jog') {
+      target = Pose.walk(d, this.phase, { amp: 0.62, knee: 0.95, lean: 0.24, bob: 3, limpF, limpB });
+      const s2 = Math.sin(this.phase);
+      target.uaF = 0.3 + 0.25 * s2; target.faF = 0.1 + 0.2 * s2; target.uaB = 0.6 - 0.25 * s2; target.faB = 0.35;
+      if (speedNow < 10) target = Pose.walk(d, this.phase, { amp: 0.05, lean: 0.15 });
+    } else if (gait === 'stomp') {
+      const amp = speedNow < 4 ? 0.04 : this.chargeT > 0 ? 0.7 : 0.38;
+      target = Pose.walk(d, this.phase, { amp, knee: 0.55, lean: this.chargeT > 0 ? 0.45 : 0.16, bob: 4.5, limpF, limpB });
+      const s2 = Math.sin(this.phase);
+      target.uaF = Math.PI / 2 - 0.55 + 0.35 * s2; target.faF = target.uaF - 0.45; target.uaB = Math.PI / 2 - 0.35 - 0.35 * s2; target.faB = target.uaB - 0.4;
+      const sgn = Math.sign(Math.sin(this.phase));
+      if (speedNow > 10 && sgn !== this.lastStep) { this.lastStep = sgn; Sfx.play('land', { x: this.x, y: this.y, vol: 0.5, rate: 0.7 }); const p = this.game.player; if (p && dist(p.x, p.y, this.x, this.y) < 500) this.game.shake(1.5); }
+    } else if (gait === 'waddle') {
+      target = Pose.walk(d, this.phase, { amp: speedNow < 4 ? 0.04 : 0.26, knee: 0.4, lean: -0.08, bob: 2.6, limpF, limpB });
+      target.uaF = 1.05 + 0.1 * Math.sin(this.phase); target.faF = 0.9; target.uaB = 1.25; target.faB = 1.0;
+    } else if (gait === 'prowl') {
+      const amp = speedNow < 4 ? 0.05 : 0.7;
+      target = Pose.walk(d, this.phase, { amp, knee: 1.2, lean: 0.85, bob: 3, crouch: 1, limpF, limpB });
+      const s2 = Math.sin(this.phase);
+      target.uaF = 1.0 + 0.55 * s2; target.faF = target.uaF + 0.25; target.uaB = 1.0 - 0.55 * s2; target.faB = target.uaB + 0.25;
+      target.head = -0.35;
+      if (this.state === 'pounce') { target.uaF = -0.2; target.faF = -0.1; target.uaB = 0; target.faB = 0.1; target.torso = -0.5; target.head = -0.2; }
+    } else if (gait === 'sprint') {
       target = Pose.walk(d, this.phase, { amp: 0.85, knee: 1.25, lean: 0.38, bob: 4, limpF, limpB });
       const s = Math.sin(this.phase);
       target.uaF = Math.PI / 2 - 0.9 * s; target.faF = target.uaF - 1.3; target.uaB = Math.PI / 2 + 0.9 * s; target.faB = target.uaB - 1.3;
@@ -460,9 +711,10 @@ class Zombie {
         target.uaB = strike ? 0.5 : -1.0 * k + 0.4; target.faB = strike ? 0.4 : -1.3 * k + 0.3;
       }
     }
+    if (this.state === 'scream') { const k = Math.min(1, (1.7 - this.stateT) * 3); target.torso = -Math.PI / 2 - 0.35 * k; target.head = -Math.PI / 2 - 0.9 * k; target.uaF = -0.9 * k + 0.6; target.faF = -1.4 * k + 0.5; target.uaB = -0.6 * k + 0.8; target.faB = -1.2 * k + 0.6; }
     if (this.state === 'stagger') { target.torso = -Math.PI / 2 - 0.35; target.head = -Math.PI / 2 - 0.5; target.uaF = 1.8; target.faF = 2.2; target.uaB = -0.4; target.faB = 0.2; }
     if (this.state === 'getup') { const k = 1 - Math.max(0, this.stateT) / 0.8; Pose.blend(this.body.pose, target, k * k); this.body.fk(true); this.updateBBox(); return; }
-    if (!this.grounded && !this.lunging) { target.thF = 0.9; target.shF = 1.9; target.thB = 1.5; target.shB = 2.2; }
+    if (!this.grounded && !this.lunging && this.state !== 'pounce') { target.thF = 0.9; target.shF = 1.9; target.thB = 1.5; target.shB = 2.2; }
     Pose.blend(this.body.pose, target, Math.min(1, dt * (this.state === 'attack' ? 22 : 14)));
     this.body.fk(true);
     this.updateBBox();
@@ -475,14 +727,15 @@ class Zombie {
     if (this.state === 'idle' || this.state === 'wander') this.setState('chase');
     this.aware = 1;
     if (o.shooter && o.shooter.x !== undefined) { this.tx = o.shooter.x; this.ty = o.shooter.y; }
-    if (this.def.armor) { const r = this.def.armor(this, bone, dmg, o); if (r !== undefined) dmg = r; }
+    this._armored = false;
+    if (this.def.armor) { const r = this.def.armor(this, bone, dmg, o, hx, hy, dx, dy); if (r !== undefined) dmg = r; }
     let mul = BONE_MUL[bone] || 1;
     if (bone === 'head' && def.cat === 'sniper') mul = 4;
     const real = dmg * mul;
     this.body.tint = 1;
     this.lastHit = { bone, def, dx, dy, force, hx, hy, kind: o.kind };
     // blood + wound
-    const g2 = Settings.goreMul();
+    const g2 = this._armored ? 0 : Settings.goreMul();
     if (g2 > 0) {
       fx.blood(hx, hy, -dx, -dy - 0.2, (bone === 'head' ? 5 : 3) * Math.min(2, real / 30 + 0.5), 0.7);
       fx.blood(hx, hy, dx, dy - 0.1, (bone === 'head' ? 8 : 5) * Math.min(2.2, real / 25 + 0.5), 1.1);
@@ -497,7 +750,8 @@ class Zombie {
       if (this.headHp <= 0) {
         const close = o.shooter ? dist(o.shooter.x, o.shooter.y, this.x, this.y) : 999;
         const burst = Settings.data.dismemberment && (real * (def.gib || 1) > this.headMax * 1.7 || def.cat === 'sniper' || (def.cat === 'shotgun' && close < 260) || -this.headHp > this.headMax * 0.9 || o.kind === 'melee' && def.heavy);
-        if (burst) Gore.headBurst(g, this.body, hx, hy, dx, dy, null);
+        if (o.kind === 'melee' && def.blade && Settings.data.dismemberment && g2 > 0) this.severLive('head', dx, dy, force);
+        else if (burst) Gore.headBurst(g, this.body, hx, hy, dx, dy, null);
         else if (g2 > 0) { fx.blood(hx, hy, dx, dy, 12, 1.2); if (chance(0.4)) fx.gib('eye', hx, hy, dx * 200, -200); }
         this.die({ cause: 'head', dx, dy, force, hx, hy, headshot: true, def, kind: o.kind });
         return;
@@ -580,9 +834,10 @@ class Zombie {
     this.dead = true;
     const g = this.game;
     this.state = 'dead';
+    if (this.def.onDeath) { const r = this.def.onDeath(this, info); if (r === 'gib') info.cause = 'gib'; }
     g.onZombieDeath(this, info);
     const dx = info.dx || 0, dy = info.dy || 0, force = info.force || 100;
-    if (info.cause === 'gib') {
+    if (info.cause === 'gib' && (Settings.goreMul() > 0 || this.def.onDeath)) {
       Gore.explodeBody(g, this.body, this.x, this.y, this.face, dx * force, dy * force);
       // legs sometimes survive the blast as a grim keepsake
       if (chance(0.5) && !this.body.boneMissing('thF')) {
@@ -596,6 +851,7 @@ class Zombie {
     const rd = new Ragdoll(g, this.body, this.x, this.y, this.face, this.vx * 0.6 + dx * force * k, this.vy * 0.6 + dy * force * k - (info.cause === 'blast' ? force * 0.4 : 40), null, { burn: info.burn || 0 });
     if (info.hx !== undefined) rd.impulse(info.hx, info.hy, dx * force * 3, dy * force * 3 - 60, 40);
     if (this.pendingSever) for (const b of this.pendingSever) if (rd.bp[b]) rd.sever(b, false);
+    if (this.body.missing.head && rd.pts.neck && Settings.goreMul() > 0) { const nk = rd.pts.neck, pv = rd.pts.pelvis || nk; g.fx.emit(() => [nk.x, nk.y, Math.atan2(nk.y - pv.y, nk.x - pv.x)], 45, 3, { power: 1.1 }); }
     if (info.cause === 'blast' && Settings.goreMul() > 0 && chance(0.6)) { this.body.gutted = true; Gore.gut(g, this.x, this.y - this.h * 0.5, dx, dy, () => { const p = rd.pts.pelvis; return p ? [p.x, p.y] : null; }); }
     g.addCorpse(rd);
   }
@@ -607,5 +863,10 @@ class Zombie {
     ctx.beginPath(); ctx.ellipse(this.x, this.y - 1, this.crawl ? 30 * this.s : 16 * this.s, 3, 0, 0, TAU); ctx.fill();
     this.body.draw(ctx, this.x, this.y, this.face, null);
     if (this.def.drawExtra) this.def.drawExtra(this, ctx);
+    if (this.buffT > 0 && !this.body.headGone) {
+      const j = this.body.j;
+      ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.45 + 0.2 * Math.sin(this.game.time * 12);
+      ctx.drawImage(Lighting.radial('#ff3010'), this.x + j.head.x * this.face - 10, this.y + j.head.y - 10, 20, 20); ctx.restore();
+    }
   }
 }

@@ -128,6 +128,8 @@ const Lighting = (() => {
       lc.globalAlpha = 0.35; lc.drawImage(radial('#8890a0'), p.x - 120, p.y - 180, 240, 240); lc.globalAlpha = 1;
     }
     lc.globalCompositeOperation = 'source-over';
+    lc.setTransform(1, 0, 0, 1, 0, 0);
+    Scene.vignetteInto(lc, W, H);
     // composite
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);

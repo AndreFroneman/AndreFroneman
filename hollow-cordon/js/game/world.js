@@ -103,6 +103,20 @@ class World {
     if (d < 1) return true;
     return this.rayDist(ax, ay, dx / d, dy / d, d) >= d - 1;
   }
+  // is there walkable floor near height y in this 16px column? (for AI route planning)
+  floorAt(x, y) {
+    if (!this._floors) {
+      const n = Math.ceil(this.w / 16) + 1;
+      this._floors = Array.from({ length: n }, () => []);
+      for (const b of this.blocks) {
+        for (let c = Math.max(0, Math.floor(b.x / 16)); c <= Math.floor((b.x + b.w - 1) / 16) && c < n; c++) this._floors[c].push(b.y);
+      }
+    }
+    const col = this._floors[Math.floor(x / 16)];
+    if (!col) return false;
+    for (const t of col) if (t >= y - 20 && t <= y + 60) return true;
+    return false;
+  }
   // y of the highest roof/solid above each 16px column: rain only falls above it
   skyY(x) {
     if (!this._sky) {

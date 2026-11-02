@@ -360,13 +360,13 @@ class FX {
 
   // ------------------------------------------------------------ draw
   drawGibs(ctx) {
+    const M = ctx.getTransform();
     for (const g of this.gibs) {
-      ctx.save();
       ctx.globalAlpha = g.alpha;
-      ctx.translate(g.x, g.y); ctx.rotate(g.rot); if (g.scale !== 1) ctx.scale(g.scale, g.scale);
-      if (g.draw) g.draw(ctx); else ctx.drawImage(g.spr.cv, -g.spr.w / 2, -g.spr.h / 2, g.spr.w, g.spr.h);
-      ctx.restore();
+      xform(ctx, M, g.x, g.y, g.rot, g.scale, g.scale);
+      ctx.drawImage(g.spr.cv, -g.spr.w / 2, -g.spr.h / 2, g.spr.w, g.spr.h);
     }
+    ctx.setTransform(M); ctx.globalAlpha = 1;
     for (const r of this.ropes) {
       const pts = r.pts;
       ctx.lineCap = 'round'; ctx.lineJoin = 'round';
@@ -379,8 +379,9 @@ class FX {
     }
   }
   drawShells(ctx) {
+    const M = ctx.getTransform();
     for (const s of this.shells) {
-      ctx.save(); ctx.translate(s.x, s.y); ctx.rotate(s.rot);
+      ctx.save(); xform(ctx, M, s.x, s.y, s.rot);
       if (s.type === 'shotgun') { ctx.fillStyle = '#8a1a14'; ctx.fillRect(-3.5, -1.4, 5.5, 2.8); ctx.fillStyle = '#b08a3a'; ctx.fillRect(2, -1.5, 1.6, 3); }
       else if (s.type === 'pistol') { ctx.fillStyle = '#b08a3a'; ctx.fillRect(-1.6, -0.8, 3.2, 1.6); }
       else { ctx.fillStyle = '#a8843a'; ctx.fillRect(-2.6, -0.8, 5.2, 1.6); ctx.fillStyle = '#7a5a20'; ctx.fillRect(1.8, -0.6, 1, 1.2); }
@@ -389,41 +390,55 @@ class FX {
   }
   drawParticles(ctx) {
     ctx.lineCap = 'round';
+    // blood droplets batched into three stroke widths
+    const widths = [1.3, 2.0, 2.8];
+    for (let k = 0; k < 3; k++) {
+      ctx.beginPath();
+      let any = false;
+      for (const p of this.parts) {
+        if (p.type !== P.BLOOD) continue;
+        const b = p.size < 1.6 ? 0 : p.size < 2.3 ? 1 : 2;
+        if (b !== k) continue;
+        ctx.moveTo(p.px, p.py); ctx.lineTo(p.x + 0.01, p.y); any = true;
+      }
+      if (any) { ctx.strokeStyle = '#740a0a'; ctx.lineWidth = widths[k]; ctx.stroke(); }
+    }
+    ctx.beginPath();
+    let bile = false;
+    for (const p of this.parts) if (p.type === P.BILE) { ctx.moveTo(p.px, p.py); ctx.lineTo(p.x + 0.01, p.y); bile = true; }
+    if (bile) { ctx.strokeStyle = '#7a9a2a'; ctx.lineWidth = 2.2; ctx.stroke(); }
+    const mist = Lighting.radial('#6e0808');
     for (const p of this.parts) {
       const t = p.life / p.max;
       switch (p.type) {
-        case P.BLOOD: case P.BILE:
-          ctx.strokeStyle = p.type === P.BILE ? '#7a9a2a' : (p.col || '#7a0a0a'); ctx.lineWidth = p.size;
-          ctx.beginPath(); ctx.moveTo(p.px, p.py); ctx.lineTo(p.x + 0.01, p.y); ctx.stroke(); break;
-        case P.MIST:
-          ctx.fillStyle = `rgba(110,8,8,${t * 0.35})`; ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, TAU); ctx.fill(); break;
-        case P.DEBRIS:
-          ctx.fillStyle = p.col; ctx.globalAlpha = Math.min(1, t * 2); ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size); ctx.globalAlpha = 1; break;
-        case P.DUST: case P.SMOKE:
-          ctx.fillStyle = rgba(p.col || '#444444', (p.type === P.SMOKE ? 0.22 : 0.18) * t * (1 - t) * 4 * 0.6); ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, TAU); ctx.fill(); break;
-        case P.GLASS:
-          ctx.fillStyle = `rgba(200,230,240,${0.6 * t})`; ctx.fillRect(p.x, p.y, p.size, p.size * 0.6); break;
-        case P.WATER:
-          ctx.strokeStyle = 'rgba(150,170,190,0.35)'; ctx.lineWidth = 0.8; ctx.beginPath(); ctx.moveTo(p.px, p.py); ctx.lineTo(p.x, p.y); ctx.stroke(); break;
+        case P.MIST: ctx.globalAlpha = t * 0.5; ctx.drawImage(mist, p.x - p.size, p.y - p.size, p.size * 2, p.size * 2); break;
+        case P.DEBRIS: ctx.globalAlpha = Math.min(1, t * 2); ctx.fillStyle = p.col; ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size); break;
+        case P.DUST: case P.SMOKE: {
+          const a = (p.type === P.SMOKE ? 0.5 : 0.4) * t * (1 - t) * 2.4;
+          if (a < 0.01) break;
+          ctx.globalAlpha = a; const sz = p.size * 1.4;
+          ctx.drawImage(Lighting.radial(p.col || '#444444'), p.x - sz, p.y - sz, sz * 2, sz * 2); break;
+        }
+        case P.GLASS: ctx.globalAlpha = 0.6 * t; ctx.fillStyle = '#c8e6f0'; ctx.fillRect(p.x, p.y, p.size, p.size * 0.6); break;
+        case P.WATER: ctx.globalAlpha = 0.35; ctx.strokeStyle = '#96aabe'; ctx.lineWidth = 0.8; ctx.beginPath(); ctx.moveTo(p.px, p.py); ctx.lineTo(p.x, p.y); ctx.stroke(); break;
       }
     }
+    ctx.globalAlpha = 1;
   }
   drawAdditive(ctx) {
     // sparks, fire, embers, muzzle flashes and tracers (drawn after lighting with 'lighter')
     ctx.lineCap = 'round';
+    ctx.beginPath();
+    let sp = false;
+    for (const p of this.parts) if (p.type === P.SPARK) { ctx.moveTo(p.px - (p.x - p.px) * 1.5, p.py - (p.y - p.py) * 1.5); ctx.lineTo(p.x, p.y); sp = true; }
+    if (sp) { ctx.strokeStyle = 'rgba(255,214,120,0.9)'; ctx.lineWidth = 1.3; ctx.stroke(); }
+    const fire = FX.fireSprite();
     for (const p of this.parts) {
       const t = p.life / p.max;
-      if (p.type === P.SPARK) {
-        ctx.strokeStyle = p.col || `rgba(255,${180 + t * 60 | 0},90,${t})`; ctx.lineWidth = p.size;
-        ctx.beginPath(); ctx.moveTo(p.px - (p.x - p.px) * 1.5, p.py - (p.y - p.py) * 1.5); ctx.lineTo(p.x, p.y); ctx.stroke();
-      } else if (p.type === P.FIRE) {
-        const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size);
-        g.addColorStop(0, `rgba(255,220,140,${0.7 * t})`); g.addColorStop(0.4, `rgba(255,120,30,${0.45 * t})`); g.addColorStop(1, 'rgba(120,20,0,0)');
-        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, TAU); ctx.fill();
-      } else if (p.type === P.EMBER) {
-        ctx.fillStyle = `rgba(255,140,40,${t})`; ctx.fillRect(p.x, p.y, 1.5, 1.5);
-      }
+      if (p.type === P.FIRE) { ctx.globalAlpha = Math.min(1, t * 1.1); ctx.drawImage(fire, p.x - p.size, p.y - p.size, p.size * 2, p.size * 2); }
+      else if (p.type === P.EMBER) { ctx.globalAlpha = t; ctx.fillStyle = '#ff8c28'; ctx.fillRect(p.x, p.y, 1.5, 1.5); }
     }
+    ctx.globalAlpha = 1;
     for (const tr of this.tracers) {
       const t = tr.life / tr.max;
       const g = ctx.createLinearGradient(tr.x0, tr.y0, tr.x1, tr.y1);
@@ -453,6 +468,14 @@ class FX {
       ctx.fillStyle = t.col; ctx.fillText(t.str, t.x, t.y);
     }
     ctx.globalAlpha = 1;
+  }
+  static fireSprite() {
+    if (FX._fire) return FX._fire;
+    const S = 64, cv = makeCanvas(S, S), c = cv.getContext('2d');
+    const g = c.createRadialGradient(S / 2, S / 2, 0, S / 2, S / 2, S / 2);
+    g.addColorStop(0, 'rgba(255,220,140,0.75)'); g.addColorStop(0.4, 'rgba(255,120,30,0.45)'); g.addColorStop(1, 'rgba(120,20,0,0)');
+    c.fillStyle = g; c.fillRect(0, 0, S, S);
+    return (FX._fire = cv);
   }
   clearBlood() { this.world.decals.clear(); this.gibs.length = 0; this.ropes.length = 0; this.emitters.length = 0; this.parts.length = 0; this.shells.length = 0; }
 }

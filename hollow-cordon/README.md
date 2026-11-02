@@ -15,4 +15,5 @@ Then open <http://localhost:8000> and click once to start (the click unlocks aud
 
 ## Status
 
-**Milestone 1 — vertical slice (this build):** St. Halloran Memorial Hospital map, Warden 9 pistol, Parish 12 pump shotgun, Kolba-74 rifle and a machete; walkers, runners and crawlers; the full gore system; Survival waves with shop; Sandbox with live tools.
+- **Milestone 1 — vertical slice:** hospital map, three firearms + machete, walkers/runners/crawlers, the full gore system, Survival waves with shop, Sandbox with live tools.
+- **Milestone 2 (this build):** 24 weapons, 9 infected types, 7 maps, route-planning AI.

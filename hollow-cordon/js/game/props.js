@@ -222,6 +222,26 @@ const PropArt = (() => {
       c.fillStyle = '#333'; c.fillRect(w * 0.06, 0, 4, h * 0.82); c.fillRect(0, h * 0.78, w * 0.24, 3);
       wheel(c, w * 0.32, h * 0.86, h * 0.13); wheel(c, w * 0.72, h * 0.86, h * 0.13);
     },
+    bus(c, w, h, rng) {
+      shadeBox(c, 0, 4, w, h * 0.82, '#8a7a2a', 6);
+      c.fillStyle = '#6a5a1a'; c.fillRect(0, h * 0.62, w, 5);
+      for (let x = 30; x < w - 50; x += 52) { c.fillStyle = '#0e1418'; c.fillRect(x, h * 0.16, 40, h * 0.3); c.strokeStyle = 'rgba(180,200,210,0.3)'; c.lineWidth = 0.6; c.beginPath(); c.moveTo(x + 4, h * 0.18); c.lineTo(x + 34, h * 0.42); c.stroke(); }
+      c.fillStyle = '#0e1418'; c.fillRect(w - 34, h * 0.14, 26, h * 0.62); c.fillRect(8, h * 0.14, 16, h * 0.34);
+      c.fillStyle = '#e0d8b0'; c.font = `bold ${h * 0.09}px sans-serif`; c.fillText('ROUTE 12 · KESSLER AVE', 40, h * 0.58);
+      wheel(c, w * 0.15, h * 0.86, h * 0.13); wheel(c, w * 0.8, h * 0.86, h * 0.13);
+      for (let i = 0; i < 30; i++) { c.fillStyle = `rgba(60,30,10,${rng() * 0.5})`; c.fillRect(rng() * w, rng() * h * 0.8, rng() * 10, rng() * 4); }
+      for (let i = 0; i < 12; i++) { c.fillStyle = 'rgba(90,10,10,0.6)'; c.beginPath(); c.arc(rng() * w, h * 0.3 + rng() * h * 0.4, rng() * 4, 0, TAU); c.fill(); }
+    },
+    container(c, w, h, rng) {
+      const col = pick(['#6a2a1a', '#2a4a5a', '#4a5a2a', '#7a5a1a']);
+      shadeBox(c, 0, 0, w, h, col, 1);
+      for (let x = 6; x < w; x += 8) { c.fillStyle = 'rgba(0,0,0,0.22)'; c.fillRect(x, 3, 3, h - 6); c.fillStyle = 'rgba(255,255,255,0.05)'; c.fillRect(x + 3, 3, 1, h - 6); }
+      c.fillStyle = 'rgba(0,0,0,0.5)'; c.fillRect(0, 0, w, 4); c.fillRect(0, h - 4, w, 4); c.fillRect(0, 0, 5, h); c.fillRect(w - 5, 0, 5, h);
+      c.fillStyle = 'rgba(230,220,200,0.7)'; c.font = `bold ${h * 0.13}px monospace`; c.fillText('VARGA LOG ' + (100 + (rng() * 899 | 0)), w * 0.1, h * 0.3);
+      for (let i = 0; i < 16; i++) { const yy = rng() * h; const g = c.createLinearGradient(0, yy, 0, yy + 30); g.addColorStop(0, 'rgba(110,50,20,0.5)'); g.addColorStop(1, 'rgba(110,50,20,0)'); c.fillStyle = g; c.fillRect(rng() * w, yy, 3, 30); }
+    },
+    counter(c, w, h, rng) { shadeBox(c, 0, 0, w, 7, '#4a3a2a'); shadeBox(c, 2, 7, w - 4, h - 7, '#3a4a50'); c.fillStyle = 'rgba(0,0,0,0.3)'; for (let x = 10; x < w; x += 30) c.fillRect(x, 10, 2, h - 12); c.fillStyle = '#2a2a2a'; c.fillRect(w * 0.6, -14, 20, 14); c.fillStyle = '#4a8a5a'; c.fillRect(w * 0.62, -12, 8, 4); },
+    workbench(c, w, h, rng) { shadeBox(c, 0, 0, w, 6, '#5a4a3a'); c.fillStyle = '#3a3a3a'; c.fillRect(4, 6, 4, h - 6); c.fillRect(w - 8, 6, 4, h - 6); c.fillRect(4, h * 0.65, w - 8, 3); c.fillStyle = '#7a7e82'; c.fillRect(w * 0.2, -6, 16, 6); c.fillStyle = '#a02018'; c.fillRect(w * 0.55, -8, 18, 8); },
     shelf(c, w, h, rng) {
       c.fillStyle = '#4a4e52'; c.fillRect(0, 0, 3, h); c.fillRect(w - 3, 0, 3, h);
       for (let y = 4; y < h; y += h / 4) { c.fillStyle = '#5a5e62'; c.fillRect(0, y, w, 3); for (let x = 5; x < w - 8; x += rng.range(8, 16)) { c.fillStyle = pick(['#6a5a3a', '#3a4a5a', '#7a2a2a', '#8a8a7a']); const bh = rng.range(6, h / 4 - 4); c.fillRect(x, y - bh, rng.range(5, 10), bh); } }
@@ -246,23 +266,27 @@ const PROP_DEFS = {
   gurney: { label: 'Gurney', w: 82, h: 46, movable: true, mass: 2.4, hp: 300, mat: 'metal', res: 0.4, passable: true, vault: true },
   chair: { label: 'Chair', w: 22, h: 34, movable: true, mass: 0.7, hp: 40, mat: 'wood', res: 0.4, gib: 'wood' },
   desk: { label: 'Desk', w: 90, h: 44, movable: true, mass: 6, hp: 300, mat: 'wood', res: 1.5, gib: 'plank' },
-  locker: { label: 'Locker', w: 40, h: 110, movable: true, mass: 5, hp: 600, mat: 'metal', res: 2 },
+  locker: { label: 'Locker', w: 40, h: 110, movable: true, mass: 5, hp: 600, mat: 'metal', res: 2, passable: true },
   cabinet: { label: 'Filing cabinet', w: 34, h: 70, movable: true, mass: 4, hp: 400, mat: 'metal', res: 3 },
   bed: { label: 'Hospital bed', w: 110, h: 56, movable: true, mass: 4, hp: 500, mat: 'metal', res: 0.4, passable: true },
-  vending: { label: 'Vending machine', w: 50, h: 116, movable: false, hp: 900, mat: 'metal', res: 6 },
+  vending: { label: 'Vending machine', w: 50, h: 116, movable: false, hp: 900, mat: 'metal', res: 6, passable: true },
   sandbags: { label: 'Sandbag wall', w: 90, h: 46, movable: false, hp: 3000, mat: 'dirt', res: 12 },
   jersey: { label: 'Concrete barrier', w: 110, h: 50, movable: false, hp: 1e9, mat: 'concrete', res: 99 },
   hesco: { label: 'HESCO barrier', w: 70, h: 110, movable: false, hp: 1e9, mat: 'dirt', res: 99 },
   hay: { label: 'Hay bale', w: 70, h: 44, movable: true, mass: 3, hp: 250, mat: 'wood', res: 2.5 },
   tires: { label: 'Tyre stack', w: 44, h: 48, movable: true, mass: 2, hp: 600, mat: 'dirt', res: 3 },
   generator: { label: 'Generator', w: 70, h: 54, movable: true, mass: 6, hp: 600, mat: 'metal', res: 4 },
+  counter: { label: 'Shop counter', w: 120, h: 50, movable: false, hp: 600, mat: 'wood', res: 1.6 },
+  workbench: { label: 'Workbench', w: 100, h: 46, movable: true, mass: 6, hp: 500, mat: 'wood', res: 1.4 },
+  container: { label: 'Shipping container', w: 260, h: 120, movable: false, hp: 1e9, mat: 'metal', res: 40 },
+  bus: { label: 'Wrecked bus', w: 480, h: 130, movable: false, hp: 1e9, mat: 'metal', res: 40 },
   shelf: { label: 'Storage shelf', w: 80, h: 120, movable: false, hp: 400, mat: 'metal', res: 0.6, passable: true },
   car: { label: 'Wrecked sedan', w: 220, h: 84, movable: false, hp: 1e9, mat: 'metal', res: 30 },
   car_police: { label: 'Police cruiser', w: 230, h: 86, movable: false, hp: 1e9, mat: 'metal', res: 30, siren: true },
   ambulance: { label: 'Ambulance', w: 280, h: 120, movable: false, hp: 1e9, mat: 'metal', res: 30, siren: true },
   mil_truck: { label: 'Military truck', w: 300, h: 130, movable: false, hp: 1e9, mat: 'metal', res: 40 },
   tractor: { label: 'Tractor', w: 170, h: 110, movable: false, hp: 1e9, mat: 'metal', res: 30 },
-  train: { label: 'Subway car', w: 520, h: 150, movable: false, hp: 1e9, mat: 'metal', res: 40 },
+  train: { label: 'Subway car', w: 520, h: 130, movable: false, hp: 1e9, mat: 'metal', res: 40 },
   forklift: { label: 'Forklift', w: 110, h: 110, movable: false, hp: 1e9, mat: 'metal', res: 20 },
 };
 
@@ -290,7 +314,7 @@ class Prop {
   }
   get cx() { return this.x + this.w / 2; }
   get cy() { return this.y + this.h / 2; }
-  blocksBullets() { return !this.dead; }
+  blocksBullets() { return !this.dead && this.solid; }
   update(dt) {
     if (this.def.explosive && this.leak > 0) {
       this.leak -= dt;

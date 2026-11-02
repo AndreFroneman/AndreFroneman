@@ -42,6 +42,9 @@ const DECOR_KINDS = {
   pallet: { label: 'Pallets', w: 90, h: 30 },
   crack: { label: 'Wall crack', w: 80, h: 120 },
   radio: { label: 'Field radio', w: 40, h: 34 },
+  furnace: { label: 'Blast furnace', w: 300, h: 300 },
+  silo: { label: 'Grain silo', w: 130, h: 430 },
+  pillar: { label: 'Support pillar', w: 40, h: 380 },
 };
 
 const Decor = (() => {
@@ -174,10 +177,30 @@ const Decor = (() => {
     rails(c, d, w, h) { c.fillStyle = '#3a2a1a'; for (let x = 0; x < w; x += 20) c.fillRect(x, h * 0.4, 12, h * 0.6); c.fillStyle = '#7a7e82'; c.fillRect(0, 0, w, 4); c.fillStyle = 'rgba(255,255,255,0.3)'; c.fillRect(0, 0, w, 1); },
     pallet(c, d, w, h) { for (let i = 0; i < 3; i++) { const y = h - (i + 1) * 10; c.fillStyle = '#6a5034'; c.fillRect(0, y, w, 3); c.fillRect(0, y + 7, w, 3); c.fillStyle = '#4a3420'; c.fillRect(4, y + 3, 8, 4); c.fillRect(w / 2 - 4, y + 3, 8, 4); c.fillRect(w - 12, y + 3, 8, 4); } },
     crack(c, d, w, h, rng) { c.strokeStyle = 'rgba(0,0,0,0.6)'; c.lineWidth = 1.2; const br = (x, y, a, n) => { if (n <= 0) return; const l = rng.range(8, 24); const x2 = x + Math.cos(a) * l, y2 = y + Math.sin(a) * l; c.beginPath(); c.moveTo(x, y); c.lineTo(x2, y2); c.stroke(); br(x2, y2, a + rng.range(-0.6, 0.6), n - 1); if (rng() < 0.3) br(x2, y2, a + rng.range(-1.2, 1.2), n - 2); }; br(w / 2, 0, Math.PI / 2, 8); },
+    furnace(c, d, w, h, rng) {
+      c.fillStyle = '#3a2a22'; c.fillRect(w * 0.1, h * 0.15, w * 0.8, h * 0.85);
+      for (let y = h * 0.15; y < h; y += 10) for (let x = w * 0.1 + ((y / 10) % 2) * 9; x < w * 0.9 - 6; x += 18) { c.fillStyle = shade('#5a3a2a', rng.range(-0.3, 0.1)); c.fillRect(x, y, 16, 8); }
+      c.fillStyle = '#2a1e18'; c.fillRect(w * 0.35, 0, w * 0.3, h * 0.2);
+      const g = c.createRadialGradient(w / 2, h * 0.78, 4, w / 2, h * 0.78, w * 0.3);
+      g.addColorStop(0, '#fff0b0'); g.addColorStop(0.3, '#ff9020'); g.addColorStop(0.8, '#8a2a08'); g.addColorStop(1, '#2a0a04');
+      c.fillStyle = g; c.beginPath(); c.moveTo(w * 0.3, h); c.lineTo(w * 0.3, h * 0.66); c.quadraticCurveTo(w / 2, h * 0.5, w * 0.7, h * 0.66); c.lineTo(w * 0.7, h); c.closePath(); c.fill();
+      c.strokeStyle = '#1a1210'; c.lineWidth = 6; c.stroke();
+      c.fillStyle = 'rgba(255,140,40,0.25)'; c.fillRect(w * 0.1, h * 0.55, w * 0.8, 4);
+    },
+    silo(c, d, w, h, rng) {
+      const g = c.createLinearGradient(0, 0, w, 0); g.addColorStop(0, '#2a2c2c'); g.addColorStop(0.4, '#6a6e6e'); g.addColorStop(1, '#1e2020');
+      c.fillStyle = g; c.fillRect(0, h * 0.12, w, h * 0.88);
+      c.beginPath(); c.ellipse(w / 2, h * 0.12, w / 2, h * 0.12, 0, Math.PI, 0); c.fill();
+      for (let y = h * 0.15; y < h; y += 26) { c.fillStyle = 'rgba(0,0,0,0.3)'; c.fillRect(0, y, w, 2); }
+      for (let i = 0; i < 14; i++) { const yy = rng() * h; const gg = c.createLinearGradient(0, yy, 0, yy + 50); gg.addColorStop(0, 'rgba(110,50,20,0.5)'); gg.addColorStop(1, 'rgba(110,50,20,0)'); c.fillStyle = gg; c.fillRect(rng() * w, yy, 3, 50); }
+      c.strokeStyle = '#2a2a2a'; c.lineWidth = 2; for (let y = h * 0.2; y < h; y += 14) { c.beginPath(); c.moveTo(w - 14, y); c.lineTo(w - 4, y); c.stroke(); }
+      c.fillStyle = '#c8c0a0'; c.font = 'bold 14px sans-serif'; c.fillText('HOLLINS', w * 0.18, h * 0.3);
+    },
+    pillar(c, d, w, h) { const g = c.createLinearGradient(0, 0, w, 0); g.addColorStop(0, '#1e1e1e'); g.addColorStop(0.45, '#5a5a56'); g.addColorStop(1, '#1a1a1a'); c.fillStyle = g; c.fillRect(0, 0, w, h); c.fillStyle = '#b8961f'; for (let y = h - 60; y < h; y += 20) c.fillRect(0, y, w, 8); },
     radio(c, d, w, h) { c.fillStyle = '#3a3e2a'; roundRect(c, 0, 4, w, h - 4, 2); c.fill(); c.fillStyle = '#1a1a14'; c.fillRect(4, 8, w * 0.5, h * 0.4); c.fillStyle = '#a8c040'; c.fillRect(6, 10, 6, 3); c.fillStyle = '#222'; c.fillRect(w - 8, -14, 2, 18); c.beginPath(); c.arc(w * 0.75, h * 0.5, 4, 0, TAU); c.fill(); },
   };
   // anchor: most decor anchors at top-left; floor items anchor bottom
-  const BOTTOM = new Set(['lamp', 'iv', 'tree', 'corn', 'tent', 'flag', 'bodybag', 'corpse_old', 'fence', 'wire', 'shelf_bg', 'pallet', 'radio', 'door_bg', 'rails']);
+  const BOTTOM = new Set(['furnace', 'silo', 'pillar', 'lamp', 'iv', 'tree', 'corn', 'tent', 'flag', 'bodybag', 'corpse_old', 'fence', 'wire', 'shelf_bg', 'pallet', 'radio', 'door_bg', 'rails']);
   function sprite(d) {
     const def = DECOR_KINDS[d.kind];
     if (!def) return null;

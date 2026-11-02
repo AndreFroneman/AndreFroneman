@@ -238,6 +238,7 @@ const Scene = (() => {
   }
 
   // ------------------------------------------------------------ fog / weather
+  let fogBuf = null;
   function fog(game, ctx, view) {
     if (!Settings.data.fog) return;
     const T = THEMES[game.theme] || THEMES.streets;
@@ -245,24 +246,28 @@ const Scene = (() => {
     if (dens <= 0) return;
     const ft = fogTexture();
     const cw = ctx.canvas.width, ch = ctx.canvas.height;
-    ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.globalCompositeOperation = 'source-over';
+    // composite all fog layers into a half-resolution buffer, then blit once
+    const bw = Math.ceil(cw / 2), bh = Math.ceil(ch / 2);
+    if (!fogBuf || fogBuf.width !== bw || fogBuf.height !== bh) fogBuf = makeCanvas(bw, bh);
+    const fc = fogBuf.getContext('2d');
+    fc.setTransform(1, 0, 0, 1, 0, 0); fc.globalAlpha = 1; fc.clearRect(0, 0, bw, bh);
     const fogCol = game.map.fogColor || T.fog;
-    // tint texture once per colour
     const key = '_fog' + fogCol;
     if (!Scene[key]) { const cv = makeCanvas(ft.width, ft.height), c = cv.getContext('2d'); c.drawImage(ft, 0, 0); c.globalCompositeOperation = 'source-atop'; c.fillStyle = fogCol; c.fillRect(0, 0, cv.width, cv.height); Scene[key] = cv; }
     const tex = Scene[key];
+    const sc0 = view.scale / 2;
     for (let i = 0; i < 3; i++) {
-      const pf = 0.4 + i * 0.35, sc = view.scale * (1.6 + i * 0.5);
+      const pf = 0.4 + i * 0.35, sc = sc0 * (1.6 + i * 0.5);
       const w = tex.width * sc, h = tex.height * sc;
-      const y = ((game.map.horizon || game.world.h - 300) - view.y) * view.scale - h * (0.75 - i * 0.12);
-      let x = -(((view.x * pf + game.time * (8 + i * 6)) * view.scale) % w);
+      const y = ((game.map.horizon || game.world.h - 300) - view.y) * sc0 - h * (0.75 - i * 0.12);
+      let x = -(((view.x * pf + game.time * (8 + i * 6)) * sc0) % w);
       if (x > 0) x -= w;
-      ctx.globalAlpha = dens * (0.35 + i * 0.12);
-      for (; x < cw; x += w) ctx.drawImage(tex, x, y, w, h);
+      fc.globalAlpha = Math.min(1, dens * (0.35 + i * 0.12));
+      for (; x < bw; x += w) fc.drawImage(tex, x, y, w, h);
     }
-    // general haze
-    ctx.globalAlpha = dens * 0.12; ctx.fillStyle = fogCol; ctx.fillRect(0, 0, cw, ch);
+    fc.globalAlpha = Math.min(1, dens * 0.12); fc.fillStyle = fogCol; fc.fillRect(0, 0, bw, bh);
+    ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.drawImage(fogBuf, 0, 0, cw, ch);
     ctx.restore();
   }
   function weatherFx(game, ctx, view, dt) {
@@ -301,14 +306,6 @@ const Scene = (() => {
   function post(game, ctx, dmgFlash) {
     const cw = ctx.canvas.width, ch = ctx.canvas.height;
     ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0);
-    if (!vignette || vignette.width !== cw || vignette.height !== ch) {
-      vignette = makeCanvas(cw, ch);
-      const c = vignette.getContext('2d');
-      const g = c.createRadialGradient(cw / 2, ch / 2, Math.min(cw, ch) * 0.35, cw / 2, ch / 2, Math.max(cw, ch) * 0.75);
-      g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,0.75)');
-      c.fillStyle = g; c.fillRect(0, 0, cw, ch);
-    }
-    ctx.drawImage(vignette, 0, 0);
     const p = game.player;
     const low = p && !p.dead ? clamp(1 - p.hp / 45, 0, 1) : 0;
     const red = Math.max(dmgFlash, low * (0.45 + 0.25 * Math.sin(game.time * 6)));
@@ -319,11 +316,22 @@ const Scene = (() => {
     }
     if (Settings.data.filmGrain) {
       const gt = grain();
-      ctx.globalAlpha = 0.05; ctx.globalCompositeOperation = 'overlay';
+      ctx.globalAlpha = 0.035;
       const ox = -Math.random() * 256, oy = -Math.random() * 256;
       for (let x = ox; x < cw; x += 256) for (let y = oy; y < ch; y += 256) ctx.drawImage(gt, x, y);
     }
     ctx.restore();
   }
-  return { background, backwalls, blocks, stairs, ladders, decor, fog, weather: weatherFx, post };
+  // vignette, drawn into the light map so it costs no extra full-screen pass
+  function vignetteInto(c, w, h) {
+    if (!vignette || vignette.width !== w || vignette.height !== h) {
+      vignette = makeCanvas(w, h);
+      const v = vignette.getContext('2d');
+      const g = v.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.35, w / 2, h / 2, Math.max(w, h) * 0.75);
+      g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,0.75)');
+      v.fillStyle = g; v.fillRect(0, 0, w, h);
+    }
+    c.drawImage(vignette, 0, 0);
+  }
+  return { background, backwalls, blocks, stairs, ladders, decor, fog, weather: weatherFx, post, vignetteInto };
 })();

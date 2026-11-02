@@ -27,8 +27,26 @@ const MB = {
   spawn: (x, y, kind = 'edge') => ({ type: 'spawn', x, y, kind }),
   player: (x, y) => ({ type: 'player', x, y }),
   ladder: (x, y, h) => ({ type: 'ladder', x, y, h, w: 28 }),
-  stairs: (x, y, w, h, dir, mat = 'concrete') => ({ type: 'stairs', x, y, w, h, dir, mat }),
+  stairs: (x, y, w, h, dir, mat = 'concrete', solid = false) => ({ type: 'stairs', x, y, w, h, dir, mat, solid }),
   zombie: (kind, x, y) => ({ type: 'zombie', kind, x, y }),
+  fire: (x, y, o = {}) => Object.assign({ type: 'fire', x, y }, o),
+  pickup: (kind, x, y, o = {}) => Object.assign({ type: 'pickup', kind, x, y }, o),
+  // horizontal slab from x0 to x1 with gaps [[a,b],...]
+  slab: (x0, x1, y, gaps = [], mat = 'concrete', h = 30) => {
+    const out = []; let x = x0;
+    for (const [a, b] of gaps.slice().sort((p, q) => p[0] - q[0])) { if (a > x) out.push(MB.block(x, y, a - x, h, mat)); x = Math.max(x, b); }
+    if (x1 > x) out.push(MB.block(x, y, x1 - x, h, mat));
+    return out;
+  },
+  // one storey of wall at x with floor at floorY: 'door' | 'window' | 'solid' | 'arch'
+  wall: (x, floorY, kind, o = {}) => {
+    const w = o.w || 24, mat = o.mat || 'concrete', top = floorY - 210, out = [];
+    if (kind === 'door') { out.push(MB.block(x, top, w, 78, mat)); out.push(MB.door(x + (w - 14) / 2, floorY, o.door || {})); }
+    else if (kind === 'window') { out.push(MB.block(x, top, w, 90, mat), MB.block(x, floorY - 50, w, 50, mat), MB.win(x + (w - 16) / 2, floorY - 120, o.win || {})); }
+    else if (kind === 'solid') out.push(MB.block(x, top, w, 210, mat));
+    else if (kind === 'arch') out.push(MB.block(x, top, w, 78, mat));
+    return out;
+  },
   // a ceiling fluorescent: fixture decor + light
   fluoro: (x, ceilY, o = {}) => [MB.deco('fixture', x - 45, ceilY), MB.light(x, ceilY + 12, Object.assign({ r: 330, color: '#dcefe4', kind: 'fluoro', int: 1 }, o))],
   bulb: (x, ceilY, o = {}) => [MB.deco('bulb', x - 6, ceilY), MB.light(x, ceilY + 56, Object.assign({ r: 260, color: '#ffcf8a', kind: 'bulb', int: 0.95, flicker: 0.2 }, o))],

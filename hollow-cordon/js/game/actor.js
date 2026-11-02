@@ -22,7 +22,7 @@ const Phys = {
       for (const b of w.query(Math.min(e.x, nx) - e.hw, top, Math.max(e.x, nx) + e.hw, bot, tmp)) {
         if (nx + e.hw <= b.x || nx - e.hw >= b.x + b.w) continue;
         if (b.oneway) {
-          if (b.stair && e.useStairs && e.grounded && !e.drop && b.y >= e.y - STEP_H && b.y < e.y - 0.5 && this.free(game, nx, b.y - 0.5, e.hw, e.h)) e.y = b.y;
+          if (b.stair && (e.useStairs || b.auto) && e.grounded && !e.drop && b.y >= e.y - STEP_H && b.y < e.y - 0.5 && this.free(game, nx, b.y - 0.5, e.hw, e.h)) e.y = b.y;
           continue;
         }
         // step up small ledges (stairs)

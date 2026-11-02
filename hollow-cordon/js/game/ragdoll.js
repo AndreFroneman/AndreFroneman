@@ -218,6 +218,7 @@ class Ragdoll {
     ctx.save();
     if (this.fade < 1) ctx.globalAlpha = this.fade;
     ctx.scale(face, 1);
+    body._M = ctx.getTransform();
     for (let layer = 0; layer <= 6; layer++) {
       for (const b of BONES) {
         if (b.layer !== layer) continue;

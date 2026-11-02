@@ -166,6 +166,14 @@ function segSegDist2(ax, ay, bx, by, cx, cy, dx, dy) {
 }
 const rectsOverlap = (ax, ay, aw, ah, bx, by, bw, bh) => ax < bx + bw && ax + aw > bx && ay < by + bh && ay + ah > by;
 
+// set ctx transform to M x T(x,y) x R(ang) x S(sx,sy) without save/restore (M: DOMMatrix base)
+function xform(ctx, M, x, y, ang, sx = 1, sy = 1) {
+  const c = Math.cos(ang), s = Math.sin(ang);
+  ctx.setTransform(
+    (M.a * c + M.c * s) * sx, (M.b * c + M.d * s) * sx,
+    (-M.a * s + M.c * c) * sy, (-M.b * s + M.d * c) * sy,
+    M.a * x + M.c * y + M.e, M.b * x + M.d * y + M.f);
+}
 function uid() { return Math.random().toString(36).slice(2, 10); }
 function deepClone(o) { return JSON.parse(JSON.stringify(o)); }
 function fmtTime(s) { s = Math.max(0, Math.ceil(s)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); }

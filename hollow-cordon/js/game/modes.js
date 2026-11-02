@@ -13,7 +13,7 @@ const SHOP_ITEMS = [
 ];
 
 // wave composition: enemy roster grows in variety and behaviour, not just numbers
-function composeWave(n, allowed) {
+function composeWave(n, allowed, bias = {}) {
   const ok = (t) => !allowed || allowed.includes(t);
   const list = [];
   const total = Math.round(7 + n * 3.2 + Math.pow(n, 1.35));
@@ -21,7 +21,7 @@ function composeWave(n, allowed) {
   if (n >= 2) pool.push(['crawler', 0.18 + n * 0.01]);
   if (n >= 3) pool.push(['runner', 0.22 + n * 0.02]);
   for (const t of WAVE_SPECIALS) if (n >= t.from && ok(t.type) && ZTYPES[t.type]) pool.push([t.type, t.w + (n - t.from) * (t.grow || 0.01)]);
-  const valid = pool.filter(([t]) => ok(t) && ZTYPES[t]);
+  const valid = pool.filter(([t]) => ok(t) && ZTYPES[t]).map(([t, w]) => [t, w * (bias[t] || 1)]);
   if (!valid.length) valid.push([allowed && allowed[0] || 'walker', 1]);
   const sum = valid.reduce((a, [, w]) => a + w, 0);
   for (let i = 0; i < total; i++) {
@@ -34,7 +34,14 @@ function composeWave(n, allowed) {
   return list;
 }
 // populated in milestone 2 with special infected
-const WAVE_SPECIALS = [];
+const WAVE_SPECIALS = [
+  { type: 'riot', from: 4, w: 0.1, grow: 0.01 },
+  { type: 'bloater', from: 5, w: 0.07, grow: 0.005 },
+  { type: 'brute', from: 6, w: 0, grow: 0.004, boss: 3 },
+  { type: 'shrieker', from: 6, w: 0.03, grow: 0.004 },
+  { type: 'leaper', from: 7, w: 0.06, grow: 0.008 },
+  { type: 'soldier', from: 8, w: 0.07, grow: 0.01 },
+];
 
 class SurvivalMode {
   constructor(game, opts = {}) {
@@ -90,11 +97,24 @@ class SurvivalMode {
     const s = this.pickSpawn(type);
     const z = this.game.spawnZombie(type, s.x + rand(-20, 20), s.y, { hunt: true });
     z.face = Math.sign(this.game.player.x - z.x) || 1;
+    // later waves: tougher, faster, more aggressive
+    const w = this.wave;
+    if (w > 5) { const k = 1 + (w - 5) * 0.05; z.hp *= k; z.maxHp *= k; z.headHp *= Math.sqrt(k); }
+    z.speed *= Math.min(1.35, 1 + w * 0.012);
+    return z;
+  }
+  onShriek(sh) {
+    // the scream drags in reinforcements from the nearest entrances
+    const g = this.game;
+    const sp = g.spawns.slice().sort((a, b) => Math.abs(a.x - sh.x) - Math.abs(b.x - sh.x)).slice(0, 3);
+    const n = Math.min(5, 2 + Math.floor(this.wave / 4));
+    for (let i = 0; i < n && sp.length; i++) { const s = sp[i % sp.length]; const z = g.spawnZombie(chance(0.6) ? 'walker' : 'runner', s.x + rand(-20, 20), s.y, { hunt: true }); z.buffT = 6; }
+    g.hud.toast('A shriek echoes — more are coming!');
   }
   startWave() {
     this.wave++;
     this.state = 'wave';
-    this.queue = composeWave(this.wave, this.opts.allowed);
+    this.queue = composeWave(this.wave, this.opts.allowed, this.game.map.bias || {});
     this.total = this.queue.length;
     this.spawnT = 1;
     UI.closeShop();
@@ -225,6 +245,11 @@ class SandboxMode {
     if (p && p.dead && !this.respawning) { this.respawning = true; g.later(2.5, () => { this.respawning = false; UI.gameOver({ title: 'YOU DIED', sub: 'Sandbox', stats: [['Kills', this.kills]] }); }); }
   }
   onKill() { this.kills++; }
+  onShriek(sh) {
+    const g = this.game;
+    if (!g.spawns.length) return;
+    for (let i = 0; i < 2; i++) { const s = pick(g.spawns); g.spawnZombie(pick(this.types().filter((t) => t !== 'brute' && t !== 'shrieker').concat(['walker'])), s.x, s.y, { hunt: true }); }
+  }
   hudInfo() {
     const p = this.game.player;
     const flags = [];
@@ -253,7 +278,7 @@ class AttractMode {
   constructor(game) { this.game = game; this.t = 0; }
   start() {
     const g = this.game;
-    const types = Object.keys(ZTYPES).filter((t) => t !== 'brute');
+    const types = ['walker', 'walker', 'runner', 'crawler', 'riot', 'bloater', 'leaper'];
     for (let i = 0; i < 9; i++) { const x = rand(200, g.world.w - 200); g.spawnZombie(pick(types), x, g.world.groundBelow(x, (g.map.horizon || g.world.h - 300) - 300, 3000)); }
   }
   update(dt) {

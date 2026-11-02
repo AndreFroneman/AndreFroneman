@@ -111,7 +111,7 @@ class Game {
         const n = Math.max(2, Math.round(o.h / 14)), sh = o.h / n, sw = o.w / n;
         for (let i = 0; i < n; i++) {
           const sx = o.dir > 0 ? o.x + i * sw : o.x + o.w - (i + 1) * sw;
-          w.addBlock({ x: sx, y: o.y - (i + 1) * sh, w: sw + 0.5, h: 6, mat: o.mat || 'concrete', oneway: true, stair: true });
+          w.addBlock({ x: sx, y: o.y - (i + 1) * sh, w: sw + 0.5, h: 6, mat: o.mat || 'concrete', oneway: true, stair: true, auto: !!o.solid });
         }
         w.links.push({ kind: 'stairs', bx: o.dir > 0 ? o.x - 12 : o.x + o.w + 12, tx: o.dir > 0 ? o.x + o.w + 14 : o.x - 14, bottom: o.y, top: o.y - o.h });
         w.stairs.push(o);
@@ -134,6 +134,8 @@ class Game {
         break;
       }
       case 'light': this.lights.push({ x: o.x, y: o.y, r: o.r || 300, color: o.color || '#ffe0b0', int: o.int === undefined ? 1 : o.int, kind: o.kind || 'bulb', flicker: o.flicker || 0, clip: o.clip === undefined ? 'auto' : o.clip, shaft: o.shaft || 0, seed: Math.random() * 100, on: true, halo: o.halo }); break;
+      case 'fire': this.fires.push({ x: o.x, y: o.y, life: Infinity, max: Infinity, perm: true, harmless: !!o.harmless }); this.lights.push({ x: o.x, y: o.y - 30, r: o.r || 340, color: '#ff8a30', int: 1.1, kind: 'fire', flicker: 1, clip: null, seed: Math.random() * 100, on: true }); break;
+      case 'pickup': this.later(0, () => this.pickups.push(new Pickup(this, o.x, o.y, o.kind || 'ammo', { ammo: o.ammo || '9mm', amount: o.amount || (o.kind === 'ammo' ? AMMO[o.ammo || '9mm'].box : 1), weapon: o.weapon || 'p9', life: Infinity, vx: 0, vy: 0 }))); break;
       case 'note': this.notes.push({ x: o.x, y: o.y, title: o.title || 'Note', text: o.text || '' }); break;
       case 'spawn': this.spawns.push({ x: o.x, y: o.y, kind: o.kind || 'edge' }); break;
       case 'player': this.playerSpawn = { x: o.x, y: o.y }; break;
@@ -148,7 +150,7 @@ class Game {
   hitstop(t) { this.hitstopT = Math.max(this.hitstopT, t); }
   damageFlash(a) { this.dmgFlash = Math.min(1, this.dmgFlash + a); }
   later(t, fn) { this.timers.push({ t, fn }); }
-  addFire(x, y, life) { if (this.fires.length > 30) this.fires.shift(); this.fires.push({ x, y, life, max: life }); }
+  addFire(x, y, life) { if (this.fires.length > 40) { const i = this.fires.findIndex((f) => !f.perm); if (i >= 0) this.fires.splice(i, 1); } this.fires.push({ x, y, life, max: life }); }
   lightAt(x, y) { return Lighting.levelAt(this, x, y); }
   solidPropAt(x, y) {
     for (const p of this.props) if (p.solid && !p.dead && x >= p.x && x <= p.x + p.w && y >= p.y && y <= p.y + p.h) return p;
@@ -245,13 +247,17 @@ class Game {
     this.grenades = this.grenades.filter((g) => !g.done);
     for (const f of this.fires) {
       f.life -= dt;
-      if (Math.random() < 0.7) this.fx.fire(f.x + rand(-14, 14), f.y - 4, 1, 16);
+      if (Math.random() < (f.perm ? 0.9 : 0.7)) this.fx.fire(f.x + rand(-14, 14), f.y - 4, f.perm ? 2 : 1, f.perm ? 22 : 16);
       if (Math.random() < 0.1) this.fx.smoke(f.x, f.y - 20, 1, '#2a2a2a', 26, 50);
+      if (f.harmless) continue;
       for (const z of this.zombies) if (!z.dead && Math.abs(z.x - f.x) < 26 && Math.abs(z.y - f.y) < 30) z.burnT = Math.max(z.burnT, 2.5);
       if (p && !p.dead && Math.abs(p.x - f.x) < 22 && Math.abs(p.y - f.y) < 30) p.hurt(14 * dt, Math.sign(p.x - f.x), null, true);
     }
     this.fires = this.fires.filter((f) => f.life > 0);
-    if (this.fires.length) Sfx.loop('amb_fire', Math.min(0.6, this.fires.length * 0.1));
+    let nearFire = 0;
+    const lx = p ? p.x : this.cam.x;
+    for (const f of this.fires) nearFire += Math.max(0, 1 - Math.abs(f.x - lx) / 900);
+    if (nearFire > 0) Sfx.loop('amb_fire', Math.min(0.6, nearFire * 0.3));
     else Sfx.loop('amb_fire', 0);
     this.fx.update(dt);
     // siren lights alternate colour
@@ -276,13 +282,15 @@ class Game {
   updateCamera(dt) {
     const c = this.cam, p = this.player;
     const canvas = UI.canvas;
-    const zoom = Settings.data.cameraZoom * (this.opts.zoom || 1);
+    const zoom = Settings.data.cameraZoom * (this.opts.zoom || 1) * (c.zoomK || 1);
     const visH = 800 / zoom;
     const scale = canvas.height / visH;
     let tx, ty;
     if (p && !p.dead) {
-      const look = Input.act('aim') ? 0.55 : 0.28;
-      tx = p.x + clamp(p.mx - p.x, -700, 700) * look;
+      const scoped = p.gun && p.gun.def.scope && Input.act('aim');
+      c.zoomK = lerp(c.zoomK || 1, scoped ? 0.78 : 1, Math.min(1, dt * 5));
+      const look = Input.act('aim') ? (scoped ? 0.9 : 0.55) : 0.28;
+      tx = p.x + clamp(p.mx - p.x, -1100, 1100) * look;
       ty = p.y - 175 + clamp(p.my - (p.y - 80), -400, 400) * look * 0.8;
     } else if (p && p.dead) {
       const rd = this.corpses[this.corpses.length - 1];

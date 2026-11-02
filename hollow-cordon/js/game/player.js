@@ -213,13 +213,17 @@ class Player {
     if (ui.reload) this.startReload();
     if (g.reloading) this.updateReload(dt, ui);
     // fire
-    const want = def.mode === 'auto' ? ui.fire : ui.firePressed;
+    let want = def.mode === 'auto' ? ui.fire : ui.firePressed;
+    if (def.mode === 'burst') {
+      if (ui.firePressed && !(g.burstLeft > 0) && g.cool <= 0 && !g.reloading) g.burstLeft = def.burst || 3;
+      want = g.burstLeft > 0;
+    }
     if (want && g.cool <= 0 && g.cycle <= 0) {
       if (g.reloading && def.reloadType === 'shell' && g.mag > 0) { g.reloading = false; if (def.mode === 'pump' && g.chamberEmpty) { g.cycle = def.cycleTime * 0.6; g.chamberEmpty = false; } return; }
       if (g.reloading) return;
       if (g.mag > 0 || this.infAmmo && def.mag === 0) this.shoot(g);
       else {
-        Sfx.play('dry', { vol: 0.6 }); g.cool = 0.25;
+        Sfx.play('dry', { vol: 0.6 }); g.cool = 0.25; g.burstLeft = 0;
         if (Settings.data.autoReload) this.startReload();
       }
     }
@@ -229,6 +233,7 @@ class Player {
     g.cool = 60 / def.rpm;
     if (!this.infAmmo) g.mag--;
     if (def.mode === 'pump' || def.mode === 'bolt') { g.cycle = def.cycleTime; }
+    if (def.mode === 'burst') { g.burstLeft--; if (g.burstLeft <= 0) g.cool = 0.26; }
     const m = this.muzzleWorld();
     const pistol = def.cat === 'pistol';
     let spread = this.lastUi && this.lastUi.aim ? def.aimSpread : def.spread;
@@ -544,6 +549,7 @@ class Player {
       if (def.mode === 'pump' && g.cycle > 0) { const k = Math.sin(clamp(1 - g.cycle / def.cycleTime, 0, 1) * Math.PI); f[0] -= gs.pumpTravel * k; }
       sup = rot(f);
     } else sup = rot([12, 2]);
+    if (def && def.mode === 'bolt' && g.cycle > 0 && gs) { const k = Math.sin(clamp(1 - g.cycle / def.cycleTime, 0, 1) * Math.PI); sup = rot([gs.eject[0] - 8 * k, gs.eject[1] + 2]); }
     if (backTarget === 'charge') sup = rot([gs && gs.eject ? gs.eject[0] : 6, -5]);
     else if (backTarget) sup = backTarget;
     if (magState === 'hand' && gs && gs.mag) sup = rot([gs.mag.ox + gs.mag.w * 0.5, gs.mag.oy + gs.mag.h * 0.9]);

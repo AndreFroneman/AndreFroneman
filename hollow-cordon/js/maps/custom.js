@@ -27,7 +27,7 @@ const Custom = {
   validate(m) {
     if (!m || typeof m !== 'object' || !Array.isArray(m.objects)) return 'Not a Hollow Cordon map (missing objects array).';
     if (!(m.width > 200) || !(m.height > 200)) return 'Map width/height missing or too small.';
-    const types = new Set(['block', 'platform', 'stairs', 'ladder', 'backwall', 'decor', 'door', 'window', 'barricade', 'prop', 'light', 'note', 'spawn', 'player', 'zombie']);
+    const types = new Set(['block', 'platform', 'stairs', 'ladder', 'backwall', 'decor', 'door', 'window', 'barricade', 'prop', 'light', 'note', 'spawn', 'player', 'zombie', 'fire', 'pickup']);
     for (const o of m.objects) if (!o || !types.has(o.type) || typeof o.x !== 'number' || typeof o.y !== 'number') return 'Map contains an invalid object.';
     return null;
   },

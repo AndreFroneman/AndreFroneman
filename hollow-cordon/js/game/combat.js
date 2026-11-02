@@ -186,6 +186,30 @@ const Combat = {
     }
   },
 
+  // bloater burst: caustic bile that burns flesh (infected included)
+  bile(game, x, y, r, dmg, src) {
+    const fx = game.fx, world = game.world;
+    Sfx.play('gore_burst', { x, y, vol: 1 }); Sfx.play('explosion_small', { x, y, vol: 0.35, rate: 1.4 }); Sfx.play('hiss', { x, y, vol: 0.6 });
+    fx.bile(x, y, 60);
+    fx.light(x, y, r * 1.6, '#a8d040', 1.3, 0.5);
+    const gy = world.groundBelow(x, y, 400);
+    for (let i = 0; i < 5; i++) Decal.bile(world, x + rand(-r * 0.6, r * 0.6), gy, rand(10, 26));
+    game.noise(x, y, 900);
+    game.shake(6);
+    for (const z of game.zombies) {
+      if (z.dead || z === src) continue;
+      const d = dist(x, y, z.x, z.y - z.h * 0.5);
+      if (d > r || !world.lineOfSight(x, y, z.x, z.y - z.h * 0.5)) continue;
+      z.blast(dmg * (1 - d / r * 0.6), Math.sign(z.x - x) || 1, -0.3, 120, x, y, 0.2, { bile: true });
+    }
+    const p = game.player;
+    if (p && !p.dead) {
+      const d = dist(x, y, p.x, p.y - 50);
+      if (d < r && world.lineOfSight(x, y, p.x, p.y - 50)) { p.hurt(dmg * (1 - d / r * 0.6), Math.sign(p.x - x), src, true); game.hud.toast('Caustic bile!'); }
+    }
+    for (const rd of game.corpses) { const b = rd.bbox; const cx = (b[0] + b[2]) / 2, cy = (b[1] + b[3]) / 2; if (dist(x, y, cx, cy) < r) rd.impulse(cx, cy, Math.sign(cx - x) * 500, -300, 120); }
+  },
+
   // melee sweep: blade segment (ax,ay)-(bx,by); hitSet prevents double hits per swing
   melee(game, attacker, ax, ay, bx, by, def, dirx, hitSet, mods = {}) {
     let any = false;

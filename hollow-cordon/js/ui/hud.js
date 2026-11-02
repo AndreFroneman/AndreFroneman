@@ -91,15 +91,22 @@ class HUD {
       // ------------------------------------------------- slot bar
       if (this.slotsT > 0 && p.weapons.length) {
         ctx.globalAlpha = Math.min(1, this.slotsT * 2);
-        const n = p.weapons.length, sw = 92 * s, sx0 = cw / 2 - n * sw / 2, sy = ch - 70 * s;
-        p.weapons.forEach((w, i) => {
-          const x = sx0 + i * sw, sel = i === p.cur;
-          ctx.fillStyle = sel ? 'rgba(200,170,110,0.25)' : 'rgba(0,0,0,0.5)'; ctx.fillRect(x + 3 * s, sy, sw - 6 * s, 52 * s);
-          ctx.strokeStyle = sel ? '#c8a870' : 'rgba(255,255,255,0.1)'; ctx.lineWidth = 1; ctx.strokeRect(x + 3 * s, sy, sw - 6 * s, 52 * s);
-          const ic = GunArt.get(w.def).icon, iw = sw - 18 * s, ih = Math.min(26 * s, iw * ic.height / ic.width);
-          ctx.drawImage(ic, x + 9 * s, sy + 8 * s, ih * ic.width / ic.height, ih);
-          txt(String(w.def.slot), x + 8 * s, sy + 48 * s, '#8a8270', 10);
-          txt(w.def.name, x + sw - 8 * s, sy + 48 * s, sel ? '#efe4c8' : '#8a8270', 9, 'right', 'normal');
+        const slots = [1, 2, 3, 4, 5, 6, 7, 8].filter((n) => p.weapons.some((w) => w.def.slot === n));
+        const sw = 104 * s, sx0 = cw / 2 - slots.length * sw / 2, sy = ch - 150 * s;
+        slots.forEach((n, i) => {
+          const list = p.weapons.filter((w) => w.def.slot === n);
+          const curIn = list.indexOf(p.gun);
+          const w = curIn >= 0 ? list[curIn] : list[0];
+          const x = sx0 + i * sw, sel = curIn >= 0;
+          ctx.fillStyle = sel ? 'rgba(200,170,110,0.25)' : 'rgba(0,0,0,0.5)'; ctx.fillRect(x + 3 * s, sy, sw - 6 * s, 56 * s);
+          ctx.strokeStyle = sel ? '#c8a870' : 'rgba(255,255,255,0.1)'; ctx.lineWidth = 1; ctx.strokeRect(x + 3 * s, sy, sw - 6 * s, 56 * s);
+          const ic = GunArt.get(w.def).icon, maxW = sw - 26 * s, ih = Math.min(24 * s, maxW * ic.height / ic.width);
+          ctx.globalAlpha *= sel ? 1 : 0.6;
+          ctx.drawImage(ic, x + sw / 2 - ih * ic.width / ic.height / 2, sy + 8 * s, ih * ic.width / ic.height, ih);
+          ctx.globalAlpha = Math.min(1, this.slotsT * 2);
+          txt(String(n), x + 8 * s, sy + 14 * s, '#c8a870', 11);
+          if (list.length > 1) txt((Math.max(0, curIn) + 1) + '/' + list.length, x + sw - 8 * s, sy + 14 * s, '#8a8270', 9, 'right');
+          txt(w.def.name, x + sw / 2, sy + 50 * s, sel ? '#efe4c8' : '#8a8270', 10, 'center', 'normal');
         });
         ctx.globalAlpha = 1;
       }

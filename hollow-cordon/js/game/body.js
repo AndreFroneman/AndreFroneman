@@ -120,6 +120,7 @@ class Body {
     ctx.save();
     ctx.translate(x, y);
     ctx.scale(face, 1);
+    this._M = ctx.getTransform();
     for (let layer = 0; layer <= 6; layer++) {
       if (layer === 5 && hooks && hooks.weapon) hooks.weapon(ctx);
       for (const b of BONES) {
@@ -137,9 +138,9 @@ class Body {
   drawSeg(ctx, s, ax, ay, bx, by, L, id) {
     const ang = Math.atan2(by - ay, bx - ax);
     const len = Math.hypot(bx - ax, by - ay);
+    const M = this._M || ctx.getTransform();
     ctx.save();
-    ctx.translate(ax, ay); ctx.rotate(ang);
-    if (Math.abs(len - L) > 0.5) ctx.scale(clamp(len / L, 0.6, 1.4), 1);
+    xform(ctx, M, ax, ay, ang, Math.abs(len - L) > 0.5 ? clamp(len / L, 0.6, 1.4) : 1, 1);
     ctx.drawImage(s.cv, s.ox, s.oy, s.w, s.h);
     const w = this.wounds[id];
     if (w) {
