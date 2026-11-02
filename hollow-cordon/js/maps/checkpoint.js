@@ -19,7 +19,7 @@
   add(MB.note(700, 1080, 'Refugee\'s letter', 'They told us to queue. Families first, papers ready, no sick.\nWe queued for four days. On the fifth they said the line was closed.\n\nA man coughed near the gate and they shot him. Then everyone ran.\nThen they shot everyone.'));
 
   // ---- the line
-  add(MB.prop('hesco', 1440, G), MB.prop('hesco', 1520, G), MB.prop('jersey', 1640, G), MB.prop('sandbags', 1770, G), MB.deco('wire', 1420, G - 110, { w: 180 }));
+  add(MB.barricade(1380, G), MB.barricade(2300, G), MB.prop('hesco', 1440, G), MB.prop('hesco', 1520, G), MB.prop('jersey', 1640, G), MB.prop('sandbags', 1770, G), MB.deco('wire', 1420, G - 110, { w: 180 }));
   add(MB.deco('sign', 1600, 880, { text: 'CHECKPOINT SABLE — HALT', w: 250, h: 28, bg: '#4a1a10' }), MB.deco('sign', 1600, 912, { text: 'LETHAL FORCE AUTHORISED', w: 250, h: 22, bg: '#1a1a1a', color: '#e8c030' }));
   // watchtower
   add(MB.block(1925, TOWER, 135, 16, 'wood'), MB.plat(1885, TOWER, 40, 'grate', 8), MB.ladder(1891, TOWER, G - TOWER));

@@ -24,7 +24,7 @@
   add(MB.slab(1000, 1900, F3, [[1100, 1145]], 'wood_floor'), MB.plat(1100, F3, 45, 'wood_floor', 8), MB.ladder(1108, F3, 240));
   add(MB.wall(1400, G, 'arch', { mat: 'wood' }), MB.wall(1320, F2, 'door', { mat: 'wood' }));
   add(MB.bw(1024, 890, 852, 210, 'wallpaper', { wainscot: '#3a2a1a' }), MB.bw(1024, 650, 852, 210, 'wood'));
-  add(MB.prop('desk', 1060, G), MB.prop('chair', 1160, G), MB.prop('cabinet', 1330, G), MB.prop('chair', 1700, G), MB.prop('bed', 1060, F2), MB.prop('cabinet', 1250, F2), MB.prop('chair', 1800, F2));
+  add(MB.barricade(1050, G, { hp: 450 }), MB.prop('desk', 1080, G), MB.prop('chair', 1185, G), MB.prop('cabinet', 1330, G), MB.prop('chair', 1700, G), MB.prop('bed', 1060, F2), MB.prop('cabinet', 1250, F2), MB.prop('chair', 1800, F2));
   add(MB.bulb(1200, 890, { color: '#ffb060', flicker: 0.35 }), MB.bulb(1650, 890, { color: '#ffb060' }), MB.bulb(1150, 650, { color: '#ffa050', flicker: 0.5 }), MB.bulb(1650, 650, { color: '#ffb060' }));
   add(MB.deco('window_bg', 1160, 690, { w: 80, h: 100 }), MB.deco('window_bg', 1540, 920, { w: 80, h: 100 }), MB.deco('clock', 1300, 920), MB.deco('blood', 1120, 1000), MB.deco('handprints', 1780, 700));
   add(MB.deco('graffiti', 1420, 690, { text: 'DONT DRINK IT', color: '#8a1a14', w: 200, h: 34 }));

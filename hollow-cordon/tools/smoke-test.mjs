@@ -14,6 +14,7 @@ const browser = await chromium.launch({ args: ['--autoplay-policy=no-user-gestur
 const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
 page.on('pageerror', (e) => errors.push('pageerror: ' + e.message + '\n' + (e.stack || '')));
 page.on('console', (m) => { if (m.type() === 'error') errors.push('console: ' + m.text()); });
+page.on('dialog', (d) => d.accept());
 const snap = async (name) => { if (shots) await page.screenshot({ path: `${shots}/${name}.png` }); };
 
 await page.goto(base);
@@ -68,6 +69,62 @@ if (scenario === 'all' || scenario === 'sandbox') {
   await page.keyboard.press('Escape');
   await sleep(300);
   await snap('06-pause');
+}
+if (scenario === 'all' || scenario === 'ui') {
+  // menu -> survival setup -> start
+  await page.evaluate(() => App.toMenu());
+  await sleep(300);
+  await page.click('text=SURVIVAL');
+  await page.click('.survivors .card >> nth=2');
+  await page.click('text=START SURVIVAL');
+  await sleep(500);
+  // shop: open during the break, buy something, close
+  await page.keyboard.press('KeyB');
+  await sleep(300);
+  const before = await page.evaluate(() => App.game.mode.cash);
+  await page.click('.shop .item:has-text("Medkit") button');
+  const after = await page.evaluate(() => App.game.mode.cash);
+  if (!(after < before)) throw new Error('shop purchase failed');
+  await snap('07-shop');
+  await page.keyboard.press('KeyB');
+  await sleep(200);
+  // remap reload to KeyT via pause -> controls
+  await page.keyboard.press('Escape');
+  await sleep(200);
+  await page.click('.pause button:has-text("CONTROLS")');
+  await page.click('.bind:has-text("Reload") .key >> nth=0');
+  await page.keyboard.press('KeyT');
+  const rebound = await page.evaluate(() => Settings.data.bindings.reload[0]);
+  if (rebound !== 'KeyT') throw new Error('remap failed: ' + rebound);
+  await page.evaluate(() => { Settings.resetBindings(); });
+  await page.click('button:has-text("DONE")');
+  await page.click('button:has-text("RESUME")');
+  // death -> game over -> restart
+  await page.evaluate(() => App.game.player.hurt(9999, 1, null, true));
+  await sleep(3200);
+  await snap('08-gameover');
+  await page.click('.gameover button:has-text("RESTART")');
+  await sleep(500);
+  const alive = await page.evaluate(() => App.state === 'game' && App.game.player && !App.game.player.dead);
+  if (!alive) throw new Error('restart failed');
+  // editor -> playtest -> back
+  await page.evaluate(() => App.toMenu());
+  await page.click('text=MAP CREATOR');
+  await sleep(500);
+  await page.click('.ed-tabs button:has-text("Props")');
+  await page.click('.ed-item:has-text("Wooden crate")');
+  await page.mouse.click(700, 450);
+  await page.keyboard.press('Escape');
+  await page.click('button:has-text("Playtest")');
+  await sleep(800);
+  const pt = await page.evaluate(() => App.state === 'game' && App.fromEditor);
+  if (!pt) throw new Error('playtest failed');
+  await page.keyboard.press('Escape');
+  await page.click('button:has-text("BACK TO EDITOR")');
+  await sleep(300);
+  if (await page.evaluate(() => App.state) !== 'editor') throw new Error('back to editor failed');
+  await snap('09-editor');
+  console.log('UI flows OK');
 }
 const appErr = await page.evaluate(() => App.errors || 0);
 await browser.close();

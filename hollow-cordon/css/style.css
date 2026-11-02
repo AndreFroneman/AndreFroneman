@@ -128,3 +128,31 @@ input[type=checkbox] { accent-color: #b8321e; width: 16px; height: 16px; }
 
 /* editor */
 canvas#game.editor { cursor: default; }
+#ui > .editor-ui { pointer-events: none; position: absolute; inset: 0; }
+.editor-ui > * { pointer-events: auto; }
+.ed-top { position: absolute; top: 0; left: 0; right: 0; height: 44px; display: flex; align-items: center; gap: 4px; padding: 0 10px; background: rgba(8,9,11,0.94); border-bottom: 1px solid var(--line); overflow-x: auto; white-space: nowrap; }
+.ed-top select { padding: 3px; }
+.ed-title { font-weight: 900; letter-spacing: 3px; color: #efe4c8; margin-right: 10px; }
+.ed-top .sep { width: 1px; height: 24px; background: rgba(255,255,255,0.12); margin: 0 6px; display: inline-block; }
+.ed-top .btn.sel { background: rgba(200,160,90,0.35); border-color: var(--accent2); }
+.ed-left { position: absolute; top: 44px; left: 0; bottom: 52px; width: 252px; background: rgba(8,9,11,0.92); border-right: 1px solid var(--line); display: flex; flex-direction: column; }
+.ed-tabs { display: flex; flex-wrap: wrap; gap: 2px; padding: 6px; border-bottom: 1px solid var(--line); }
+.ed-tabs .btn { flex: 1 1 auto; }
+.ed-items { overflow-y: auto; padding: 6px; display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+.ed-item { display: flex; flex-direction: column; align-items: center; gap: 2px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); color: var(--text); font-family: inherit; font-size: 11px; padding: 4px; cursor: pointer; text-align: center; }
+.ed-item:hover { border-color: rgba(200,160,100,0.6); }
+.ed-item.sel { border-color: var(--accent); background: rgba(150,36,22,0.25); }
+.ed-item canvas { width: 64px; height: 40px; }
+.ed-right { position: absolute; top: 44px; right: 0; bottom: 52px; width: 300px; background: rgba(8,9,11,0.92); border-left: 1px solid var(--line); overflow-y: auto; padding: 8px 10px; font-size: 13px; }
+.ed-h { font-weight: 900; letter-spacing: 2px; color: var(--accent2); margin: 10px 0 6px; font-size: 12px; }
+.ef { display: grid; grid-template-columns: 110px 1fr auto; gap: 6px; align-items: center; margin: 4px 0; }
+.ef.chk { grid-template-columns: 20px 1fr; }
+.ef.area { grid-template-columns: 1fr; }
+.ef input[type=number], .ef input:not([type]), .ef textarea, .ef select { background: #141416; color: var(--text); border: 1px solid rgba(255,255,255,0.15); padding: 4px; font-family: inherit; width: 100%; }
+.ef input[type=color] { width: 100%; height: 26px; background: #141416; border: 1px solid rgba(255,255,255,0.15); }
+.ef em { color: var(--accent2); font-style: normal; font-size: 11px; min-width: 30px; text-align: right; }
+.ed-status { position: absolute; left: 0; right: 0; bottom: 22px; height: 30px; line-height: 30px; padding: 0 12px; background: rgba(8,9,11,0.94); border-top: 1px solid var(--line); font-size: 13px; color: #cfc4aa; font-variant-numeric: tabular-nums; overflow: hidden; white-space: nowrap; }
+.ed-help { position: absolute; left: 0; right: 0; bottom: 0; height: 22px; line-height: 22px; padding: 0 12px; background: #050506; font-size: 11px; color: var(--dim); overflow: hidden; white-space: nowrap; }
+.ed-dialog { background: rgba(0,0,0,0.6); }
+.ed-dialog .panel { width: min(640px, 100%); }
+.ed-row { display: grid; grid-template-columns: 1fr auto auto auto; gap: 8px; align-items: center; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }

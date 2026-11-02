@@ -553,7 +553,7 @@ function drawBoards(ctx, o, x, y, w, h) {
 class Barricade {
   constructor(game, x, y, o = {}) {
     this.game = game; this.isProp = true; this.isBarricade = true;
-    this.w = o.w || 24; this.h = o.h || 100; this.x = x; this.y = y;
+    this.w = o.w || 24; this.h = o.h || 70; this.x = x; this.y = y;
     this.maxHp = o.hp || 600; this.hp = o.hp0 === undefined ? this.maxHp : o.hp0;
     this.mat = 'wood'; this.dead = false;
     this.id = o.id || uid();

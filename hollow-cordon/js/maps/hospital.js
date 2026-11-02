@@ -37,6 +37,7 @@
   add(MB.bw(3424, 650, 446, 210, 'tile_white', { dark: 0.5 }));               // isolation
 
   // ---- doors & windows
+  add(MB.barricade(880, G), MB.barricade(3790, G));
   add(MB.door(808, G, { label: 'Entrance' }), MB.door(1705, G), MB.door(2655, G), MB.door(2955, G), MB.door(3877, G, { metal: true }));
   add(MB.door(1705, F2), MB.door(2955, F2), MB.door(3405, F2, { metal: true, locked: true }));
   add(MB.win(807, 740), MB.win(3877, 740));

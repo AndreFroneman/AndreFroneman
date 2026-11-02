@@ -19,7 +19,7 @@ const MB = {
   bw: (x, y, w, h, mat = 'concrete', o = {}) => Object.assign({ type: 'backwall', x, y, w, h, mat }, o),
   door: (x, floorY, o = {}) => Object.assign({ type: 'door', x, y: floorY - (o.h || 132) }, o),
   win: (x, y, o = {}) => Object.assign({ type: 'window', x, y }, o),
-  barricade: (x, floorY, o = {}) => Object.assign({ type: 'barricade', x, y: floorY - (o.h || 100) }, o),
+  barricade: (x, floorY, o = {}) => Object.assign({ type: 'barricade', x, y: floorY - (o.h || 70), h: o.h || 70 }, o),
   prop: (kind, x, floorY, o = {}) => Object.assign({ type: 'prop', kind, x, y: floorY - (o.h || PROP_DEFS[kind].h) }, o),
   light: (x, y, o = {}) => Object.assign({ type: 'light', x, y }, o),
   deco: (kind, x, y, o = {}) => Object.assign({ type: 'decor', kind, x, y }, o),

@@ -33,7 +33,7 @@
 
   // lobby
   add(MB.deco('sign', 760, 905, { text: 'MARROW FALLS PD — PRECINCT 9', w: 280, h: 26, bg: '#1a2a4a' }), MB.deco('poster', 1060, 945, { text: 'WANTED INFORMATION', color: '#2a3a5a' }), MB.deco('clock', 1440, 920));
-  add(MB.prop('counter', 880, G), MB.prop('chair', 1040, G), MB.prop('chair', 1066, G), MB.deco('handprints', 1460, 980));
+  add(MB.barricade(790, G), MB.prop('counter', 880, G), MB.prop('chair', 1040, G), MB.prop('chair', 1066, G), MB.deco('handprints', 1460, 980));
   add(MB.fluoro(950, 890), MB.fluoro(1300, 890, { flicker: 0.3 }));
   // bullpen
   add(MB.prop('desk', 1600, G), MB.prop('chair', 1700, G), MB.prop('desk', 1850, G), MB.prop('cabinet', 2050, G), MB.prop('cabinet', 2090, G), MB.prop('desk', 2200, G));

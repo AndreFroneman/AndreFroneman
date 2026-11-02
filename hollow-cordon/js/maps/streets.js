@@ -27,7 +27,7 @@
   add(MB.deco('sign', 860, 905, { text: 'ROSSI PHARMACY', w: 170, h: 24, bg: '#1a5a2a' }), MB.deco('redcross', 1260, 915), MB.deco('poster', 1080, 950, { text: 'NO MORE ANTIVIRALS' }));
   add(MB.deco('graffiti', 1360, 975, { text: 'LOOTED', color: '#c8c8c0', w: 150, h: 40 }), MB.deco('handprints', 1600, 970), MB.deco('window_bg', 960, 690, { w: 80, h: 100 }));
   add(MB.deco('clock', 1300, 690), MB.deco('board', 1420, 700), MB.deco('blood', 1200, 760));
-  add(MB.prop('shelf', 860, G), MB.prop('shelf', 950, G), MB.prop('counter', 1170, G), MB.prop('cabinet', 1300, G));
+  add(MB.barricade(850, G), MB.barricade(1620, G), MB.prop('shelf', 860, G), MB.prop('shelf', 950, G), MB.prop('counter', 1170, G), MB.prop('cabinet', 1300, G));
   add(MB.prop('bed', 860, F2), MB.prop('desk', 1080, F2), MB.prop('chair', 1190, F2), MB.prop('locker', 1630, F2));
   add(MB.pickup('medkit', 1220, 1048), MB.pickup('ammo', 1320, 1090, { ammo: '9mm' }));
   add(MB.note(1240, 1030, 'Pharmacy ledger — last page', 'Antiviral stock: 0. Saline: 0. Sedatives: 0.\n\nThe Health Authority van never came. A man in a Cordon armband took the last crate at gunpoint and said it was "for the line".\n\nThe fever does not care what we give it. Lock the door at night. They come when they hear the bell.'));
