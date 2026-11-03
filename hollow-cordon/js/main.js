@@ -134,3 +134,11 @@ const App = {
 };
 
 window.addEventListener('load', () => App.init());
+
+// ---- installable web app: offline service worker + "Install app" button.
+// Only over http(s): the desktop app and file:// launches don't need it.
+if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
+  try { navigator.serviceWorker.register('sw.js').catch(() => {}); } catch (e) { /* sandboxed page */ }
+}
+window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); UI.installPrompt = e; UI.refreshInstall(); });
+window.addEventListener('appinstalled', () => { UI.installPrompt = null; UI.refreshInstall(); });

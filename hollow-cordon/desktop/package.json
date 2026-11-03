@@ -1,0 +1,99 @@
+{
+  "name": "hollow-cordon",
+  "productName": "Hollow Cordon",
+  "version": "1.1.0",
+  "description": "Hollow Cordon — 2D side-view zombie survival shooter (desktop app)",
+  "author": "Andre Froneman",
+  "license": "UNLICENSED",
+  "private": true,
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --publish never",
+    "dist:win": "electron-builder --win --publish never",
+    "dist:mac": "electron-builder --mac --publish never",
+    "dist:linux": "electron-builder --linux --publish never"
+  },
+  "devDependencies": {
+    "electron": "44.7.2",
+    "electron-builder": "26.17.0"
+  },
+  "build": {
+    "appId": "com.andrefroneman.hollowcordon",
+    "productName": "Hollow Cordon",
+    "copyright": "Hollow Cordon",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "..",
+        "to": "game",
+        "filter": [
+          "index.html",
+          "manifest.webmanifest",
+          "css/**",
+          "js/**",
+          "icons/**"
+        ]
+      }
+    ],
+    "icon": "../icons/icon-1024.png",
+    "artifactName": "Hollow-Cordon-${version}-${os}-${arch}.${ext}",
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "portable": {
+      "artifactName": "Hollow-Cordon-${version}-portable.exe"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "shortcutName": "Hollow Cordon"
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "universal"
+          ]
+        }
+      ],
+      "category": "public.app-category.action-games"
+    },
+    "linux": {
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "category": "Game",
+      "synopsis": "2D side-view zombie survival shooter",
+      "syncDesktopName": true
+    },
+    "publish": null
+  },
+  "desktopName": "hollow-cordon.desktop"
+}

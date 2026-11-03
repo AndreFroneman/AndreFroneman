@@ -17,11 +17,43 @@ All art and audio are generated procedurally at runtime, so the game ships no im
 
 ## Launching the game
 
-The game is plain HTML5 + JavaScript. It needs **no install, no dependencies and no build step**.
+The game is plain HTML5 + JavaScript. It needs **no install, no dependencies and no build step**. There are four ways to run it.
 
-**Option A — just open it:** double-click `hollow-cordon/index.html`, or drag it into a desktop browser (Chrome, Edge or Firefox). That's all it takes.
+> **Get the files first.** Until the pull request is merged, the game lives on the branch `claude/gracious-brahmagupta-57j7xi`, not on `main`. Clone that branch, or use GitHub's **Code → Download ZIP** while viewing it, and run everything from the `hollow-cordon` folder inside it.
+> ```bash
+> git clone -b claude/gracious-brahmagupta-57j7xi https://github.com/AndreFroneman/AndreFroneman.git
+> ```
 
-**Option B — serve it locally (recommended):** settings, best scores and custom maps are saved more reliably when served from `localhost`.
+### Desktop app (Windows, macOS, Linux)
+`hollow-cordon/desktop/` wraps the game in a standalone Electron window:
+- It has its own icon and fullscreen with **F11** or **Alt+Enter**.
+- Saves live in the app's own profile.
+- It never touches the network.
+
+The window is locked down: the page is sandboxed without Node access, every permission request is denied, pop-ups and navigation away from the bundled files are blocked, and all outbound requests are cancelled.
+
+- **Ready-made builds:** the **Hollow Cordon desktop app** GitHub Actions workflow builds the following on every pull request and push to `main`:
+  - Windows: an installer `.exe` and a portable `.exe`
+  - macOS: a universal `.dmg`
+  - Linux: an `.AppImage`
+
+  Open the run in the repository's **Actions** tab and download the file for your system from **Artifacts**. The builds are unsigned, so Windows SmartScreen and macOS Gatekeeper warn on first launch: choose *More info → Run anyway* on Windows, or right-click → *Open* on macOS.
+- **Build or run it yourself** (needs Node.js 18+):
+  ```bash
+  cd hollow-cordon/desktop
+  npm install
+  npm start            # run the app
+  npm run dist         # build an installer for this OS into desktop/dist/
+  ```
+
+### Install it as a web app (PWA)
+Serve the folder (option B below) or host it on any static web host, such as GitHub Pages. Chrome and Edge then show **⤓ Install app** on the main menu and in the address bar. The installed game opens in its own fullscreen window, gets a Start-menu, Dock or launcher icon, and works **offline**: a service worker caches every file on first load.
+
+### Option A — just open it
+Double-click `hollow-cordon/index.html`, or drag it into a desktop browser (Chrome, Edge or Firefox). That's all it takes.
+
+### Option B — serve it locally
+Settings, best scores and custom maps are saved more reliably when the game is served from `localhost`. Serving it this way also enables the installable web app.
 
 ```bash
 cd hollow-cordon
@@ -35,7 +67,7 @@ cd hollow-cordon
 node tools/serve.mjs 8000
 ```
 
-With option B, open **http://localhost:8000**. Either way, **click once** to begin. The click is required to unlock browser audio, and the game then synthesises its sound bank in a few seconds. Headphones are recommended.
+On Windows, use `py -m http.server 8000` or `python -m http.server 8000` if `python3` isn't found. Keep that terminal open while you play, and run the command **inside the `hollow-cordon` folder**: started anywhere else, `localhost` shows a file listing or a 404. With option B, open **http://localhost:8000**. Either way, **click once** to begin. The click is required to unlock browser audio, and the game then synthesises its sound bank in a few seconds. Headphones are recommended.
 
 > Content warning: extreme graphic violence and gore. You can lower or disable it under **Settings → Gore & performance**.
 
@@ -306,7 +338,10 @@ hollow-cordon/
   js/maps/      map library + builder helpers, 7 built-in maps, custom map storage
   js/ui/        HUD, menus & overlays
   js/editor/    map creator
+  icons/        app icons (generated)        manifest.webmanifest, sw.js   installable offline web app
+  desktop/      Electron desktop app (main.js, electron-builder config in package.json)
   tools/        smoke-test.mjs (Playwright), serve.mjs (static server)
+.github/workflows/desktop.yml   builds the Windows / macOS / Linux desktop apps
 ```
 
 ---
@@ -326,6 +361,7 @@ hollow-cordon/
 - Physics props are axis-aligned boxes. Rotating a prop in the editor is visual only, and solid blocks rotate in 90° steps by swapping width and height.
 - Slow infected (walkers, burners, brutes) don't jump gaps. On a custom map where two areas are linked only by a gap, they drop through and re-route if they can; add stairs, a ladder or a plank if there's no other way round.
 - The campaign has one save slot, and Survival keeps one saved run.
+- Desktop builds are unsigned (see the first-launch warnings above), and the desktop app doesn't update itself; download a newer build to update.
 - All audio is synthesised. It is distinctive but not photorealistic.
 
 **Ideas for future work:** co-op, more campaign chapters and maps, and a remappable gamepad layout.

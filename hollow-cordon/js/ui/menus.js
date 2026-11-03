@@ -142,8 +142,23 @@ const UI = {
         this.btn('CONTROLS', () => this.controls()),
         this.btn('ABOUT', () => this.about()),
       ),
+      h('div', { class: 'install-slot' }),
       h('div', { class: 'footer' }, 'v1.1 · all art & audio procedurally generated · ', h('span', { class: 'dim' }, 'Esc pauses in game · gamepad supported')));
     this.show(el, false);
+    this.refreshInstall();
+  },
+  // "Install app" appears when the browser reports the game is installable
+  refreshInstall() {
+    const slot = this.root && this.root.querySelector('.install-slot');
+    if (!slot) return;
+    slot.innerHTML = '';
+    if (!this.installPrompt) return;
+    slot.append(this.btn('⤓ INSTALL APP', async () => {
+      const ev = this.installPrompt; if (!ev) return;
+      this.installPrompt = null;
+      try { ev.prompt(); await ev.userChoice; } catch (e) { /* dismissed */ }
+      this.refreshInstall();
+    }, 'ghost install'));
   },
   back(fn) { return this.btn('BACK', fn || (() => this.mainMenu()), 'ghost'); },
 

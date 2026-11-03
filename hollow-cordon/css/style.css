@@ -176,3 +176,5 @@ button:focus-visible, .card:focus-visible, .segb:focus-visible, select:focus-vis
 .binds.pad .padkey { color: var(--accent2); font-weight: 700; letter-spacing: 1px; text-align: right; }
 .binds.pad .bind { grid-template-columns: 1fr auto; }
 .btn.armed { border-color: var(--accent); color: #ffb0a0; }
+.install-slot { position: absolute; top: 18px; right: 18px; }
+.btn.install { font-size: 12px; letter-spacing: 2px; padding: 7px 14px; }
