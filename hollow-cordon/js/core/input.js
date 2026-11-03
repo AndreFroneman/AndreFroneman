@@ -76,9 +76,15 @@ const Input = {
   padPrev: new Set(),
   padAimDir: [1, 0], padAimLen: 200,
   navDir: null, navT: 0, navOut: null,
+  // getGamepads() throws where the Gamepad API is blocked (e.g. a sandboxed or
+  // embedded page); treat that as "no pads" instead of killing the frame.
+  gamepads() {
+    if (this.padBlocked || !navigator.getGamepads) return [];
+    try { return navigator.getGamepads() || []; } catch (e) { this.padBlocked = true; return []; }
+  },
   pollPad(dt) {
     this.navOut = null;
-    const pads = navigator.getGamepads ? navigator.getGamepads() : [];
+    const pads = this.gamepads();
     let gp = null;
     for (const p of pads || []) if (p && p.connected) { gp = p; break; }
     this.pad.connected = !!gp;
@@ -141,8 +147,8 @@ const Input = {
     this.mx = sx; this.my = sy;
   },
   rumble(strength, ms = 120) {
-    if (!this.pad.using || !navigator.getGamepads) return;
-    for (const gp of navigator.getGamepads() || []) {
+    if (!this.pad.using) return;
+    for (const gp of this.gamepads()) {
       const a = gp && gp.connected && gp.vibrationActuator;
       if (a && a.playEffect) { try { a.playEffect('dual-rumble', { duration: ms, strongMagnitude: clamp(strength, 0, 1), weakMagnitude: clamp(strength * 1.3, 0, 1) }); } catch (e) { /* unsupported */ } return; }
     }

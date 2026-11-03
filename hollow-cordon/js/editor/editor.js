@@ -437,19 +437,28 @@ class Editor {
 
   // ------------------------------------------------------------ files
   status(msg) { this.hint = msg; if (this.statusEl) this.onMove(); }
+  // two-click confirmation (native confirm() is ignored in sandboxed pages)
+  confirmClick(e, fn, msg) {
+    const b = e && e.currentTarget;
+    if (b && b.dataset.armed === '1') { delete b.dataset.armed; fn(); return; }
+    if (!b) { fn(); return; }
+    const label = b.textContent; b.dataset.armed = '1'; b.textContent = 'Sure?'; b.classList.add('armed');
+    if (msg) this.status(msg + ' Click again to confirm.');
+    setTimeout(() => { if (b.dataset.armed === '1') { delete b.dataset.armed; b.textContent = label; b.classList.remove('armed'); } }, 3000);
+  }
   save() {
-    if (!this.map.objects.some((o) => o.type === 'player')) { this.status('Add a player spawn before saving.'); alert('Add a Player spawn (Gameplay tab) before saving.'); return; }
+    if (!this.map.objects.some((o) => o.type === 'player')) { this.status('Add a Player spawn (Gameplay tab) before saving.'); return; }
     const ok = Custom.save(this.map);
     this.saved = ok;
     this.status(ok ? `Saved "${this.map.name}" — it now appears in Survival & Sandbox map lists` : 'Save failed (browser storage blocked or full)');
   }
   playtest() {
-    if (!this.map.objects.some((o) => o.type === 'player')) { alert('Add a Player spawn (Gameplay tab) before playtesting.'); return; }
+    if (!this.map.objects.some((o) => o.type === 'player')) { this.status('Add a Player spawn (Gameplay tab) before playtesting.'); return; }
     App.playtest(deepClone(this.map));
   }
   load(m, asCopy = false) {
     const err = Custom.validate(m);
-    if (err) { alert(err); return; }
+    if (err) { this.status(err); return; }
     this.map = deepClone(m);
     if (asCopy || !this.map.custom) { this.map.id = 'custom_' + uid(); this.map.name = (m.name || 'Map') + (asCopy || !m.custom ? ' (copy)' : ''); this.map.custom = true; }
     this.undoStack = []; this.redoStack = []; this.sel = []; this.dirty = true;
@@ -465,7 +474,7 @@ class Editor {
     list.append(h('h3', {}, 'Your saved maps'));
     const mine = Custom.list();
     if (!mine.length) list.append(h('div', { class: 'dim' }, 'None yet — Save to store a map in this browser.'));
-    for (const m of mine) list.append(h('div', { class: 'ed-row' }, h('span', {}, m.name), h('span', { class: 'dim' }, new Date(m.saved || 0).toLocaleString()), this.btnS('Open', () => { this.load(m); close(); }), this.btnS('Delete', () => { if (confirm('Delete "' + m.name + '"?')) { Custom.remove(m.id); close(); this.openDialog(); } })));
+    for (const m of mine) list.append(h('div', { class: 'ed-row' }, h('span', {}, m.name), h('span', { class: 'dim' }, new Date(m.saved || 0).toLocaleString()), this.btnS('Open', () => { this.load(m); close(); }), this.btnS('Delete', (e) => this.confirmClick(e, () => { Custom.remove(m.id); close(); this.openDialog(); }))));
     const dlg = h('div', { class: 'screen ed-dialog' }, h('div', { class: 'panel' }, h('h2', {}, 'OPEN MAP'), list, h('div', { class: 'row end' }, this.btnS('Close', close))));
     this.ui.append(dlg);
   }
@@ -474,7 +483,7 @@ class Editor {
     inp.addEventListener('change', () => {
       const f = inp.files[0]; if (!f) return;
       const r = new FileReader();
-      r.onload = () => { try { const m = JSON.parse(r.result); this.load(m, false); this.map.id = m.id && String(m.id).startsWith('custom_') ? m.id : 'custom_' + uid(); this.map.custom = true; this.status('Imported ' + this.map.name); } catch (e) { alert('Could not read map: ' + e.message); } };
+      r.onload = () => { try { const m = JSON.parse(r.result); this.load(m, false); this.map.id = m.id && String(m.id).startsWith('custom_') ? m.id : 'custom_' + uid(); this.map.custom = true; this.status('Imported ' + this.map.name); } catch (e) { this.status('Could not read map: ' + e.message); } };
       r.readAsText(f);
     });
     inp.click();
@@ -486,7 +495,7 @@ class Editor {
     if (this.ui) this.ui.remove();
     const top = h('div', { class: 'ed-top' },
       h('span', { class: 'ed-title' }, 'MAP CREATOR'),
-      this.btnS('New', () => { if (this.saved || confirm('Discard unsaved changes?')) { this.map = this.blankMap(); this.undoStack = []; this.redoStack = []; this.sel = []; this.dirty = true; this.refreshProps(); } }),
+      this.btnS('New', (e) => { const fresh = () => { this.map = this.blankMap(); this.undoStack = []; this.redoStack = []; this.sel = []; this.dirty = true; this.refreshProps(); }; if (this.saved) fresh(); else this.confirmClick(e, fresh, 'Discard unsaved changes?'); }),
       this.btnS('Open', () => this.openDialog()),
       this.btnS('Save', () => this.save()),
       this.btnS('Export', () => Custom.exportFile(this.map), '', 'Download the map as a .json file'),
@@ -503,7 +512,7 @@ class Editor {
       this.lightBtn = this.btnS('Lights', () => { this.lightPreview = !this.lightPreview; this.refreshTools(); }, '', 'Preview in-game lighting, fog and ambience (L)'),
       h('span', { class: 'sep' }),
       this.btnS('▶ Playtest', () => this.playtest(), 'primary', 'Play this map now (P); Esc → Back to editor'),
-      this.btnS('Exit', () => { if (this.saved || confirm('Leave without saving?')) App.toMenu(); }, 'ghost'));
+      this.btnS('Exit', (e) => { if (this.saved) App.toMenu(); else this.confirmClick(e, () => App.toMenu(), 'Leave without saving?'); }, 'ghost'));
     const tabs = h('div', { class: 'ed-tabs' });
     const items = h('div', { class: 'ed-items' });
     const cats = ED_PALETTE();

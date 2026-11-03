@@ -49,6 +49,14 @@ const UI = {
     return h('div', { class: 'screen' }, h('div', { class: 'panel' }, title ? h('h2', {}, title) : null, ...content));
   },
   btn(label, fn, cls = '') { return h('button', { class: 'btn ' + cls, onclick: fn }, label); },
+  // in-page replacements for confirm()/alert(), which sandboxed pages silently ignore
+  ask(msg, onYes, yes = 'YES', no = 'CANCEL') {
+    const el = h('div', { class: 'screen ask' }, h('div', { class: 'panel narrow' }, h('p', {}, msg),
+      h('div', { class: 'row end' }, this.btn(no, () => close(), 'ghost'), this.btn(yes, () => { close(); onYes(); }, 'primary'))));
+    const close = () => { const i = this.stack.indexOf(el); if (i >= 0) this.stack.splice(i, 1); el.remove(); };
+    this.show(el, true);
+  },
+  notice(msg) { this.ask(msg, () => {}, 'OK', 'CLOSE'); },
 
   // ------------------------------------------------------------ gamepad menu navigation
   // D-pad / left stick moves focus spatially between the controls of the
@@ -207,10 +215,9 @@ const UI = {
       });
     }
     const startNew = () => {
-      if (save && !window.confirm('Start a new campaign? Your current campaign progress will be replaced.')) return;
-      this.saveSetup();
-      CampaignSave.fresh(S.survivor, S.difficulty);
-      App.start('campaign', { chapter: 0, survivor: S.survivor, difficulty: S.difficulty });
+      const go0 = () => { this.saveSetup(); CampaignSave.fresh(S.survivor, S.difficulty); App.start('campaign', { chapter: 0, survivor: S.survivor, difficulty: S.difficulty }); };
+      if (save) this.ask('Start a new campaign? Your current campaign progress will be replaced.', go0, 'START NEW');
+      else go0();
     };
     const surv = save ? SURVIVORS.find((x) => x.id === save.survivor) : null;
     const el = this.screen('CAMPAIGN — THE LONG WAY OUT',

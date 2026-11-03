@@ -175,3 +175,4 @@ button:focus-visible, .card:focus-visible, .segb:focus-visible, select:focus-vis
 .padfocus { outline: 2px solid var(--accent2) !important; outline-offset: 2px; }
 .binds.pad .padkey { color: var(--accent2); font-weight: 700; letter-spacing: 1px; text-align: right; }
 .binds.pad .bind { grid-template-columns: 1fr auto; }
+.btn.armed { border-color: var(--accent); color: #ffb0a0; }

@@ -54,7 +54,7 @@ const App = {
     if (kind === 'campaign') opts.map = CAMPAIGN[opts.chapter | 0].map;
     const map = mapOverride || MapLib.get(opts.map) || MapLib.get('hospital');
     const err = Custom.validate(map);
-    if (err) { alert(err); this.toMenu(); return; }
+    if (err) { this.toMenu(); UI.notice(err); return; }
     const survivor = SURVIVORS.find((s) => s.id === opts.survivor) || SURVIVORS[0];
     UI.clear();
     this.game = new Game(deepClone(map), {
@@ -79,7 +79,7 @@ const App = {
     Input.gameFocus = true;
     this.canvas.className = 'editor';
     Sfx.stopLoops(0.5);
-    if (typeof Editor === 'undefined') { alert('Map creator is not available in this build.'); this.toMenu(); return; }
+    if (typeof Editor === 'undefined') { this.toMenu(); UI.notice('Map creator is not available in this build.'); return; }
     this.editor = this.editor || new Editor(this.canvas);
     this.editor.open();
   },
