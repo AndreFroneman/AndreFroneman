@@ -95,7 +95,7 @@ All actions can be remapped in **Settings → Controls** (keyboard keys or mouse
 | Jump | **Space** |
 | Climb ladders / take stairs up | **W** |
 | Crouch / climb down / drop through platforms | **S** (S + Space drops through one-way floors) |
-| Sprint | **Shift** |
+| Sprint (lowers the weapon to low ready; firing raises it again) | **Shift** |
 | Quick melee kick (knocks infected down) | **V** |
 | Throw grenade | **G** |
 | Flashlight | **F** |
@@ -210,6 +210,11 @@ Each weapon has its own damage, pellet count, spread and aim spread, bloom, reco
 
 Weapons animate their reloads: magazines drop out and are re-seated by the support hand, shotguns load shell by shell, revolvers and the double-barrel dump their empties, and pumps and bolts cycle between shots. Every shot ejects a casing and throws muzzle flash, smoke and light.
 
+**Gun models** are drawn by a material-aware renderer:
+- Each part is shaded as blued or polished steel, polymer, wood, rubber, painted metal, brass or optic glass.
+- Parts cast soft contact shadows onto each other.
+- Every gun gets the details it needs: slide serrations, ejection ports with a case in the chamber, picatinny rails, vented handguards, pins and screws, checkered grips, triggers, muzzle crowns and magazine ridges. Melee weapons get honed edges, rust and grip tape.
+
 | Slot | Weapon | Class | Damage | Mode | RPM | Mag | Ammo | Penetration | Unlocks | Price |
 |---|---|---|---|---|---|---|---|---|---|---|
 | 1 | Cane Machete | melee (blade) | 55 | — | — | — | — | — | — | start |
@@ -262,6 +267,12 @@ Plus **frag grenades** (G).
 - **Hit reactions:** big hits stagger infected, and shotgun blasts, kicks and explosions knock them down so they have to get back up.
 - **Severed limbs:** limbs come off as physics pieces.
 - **Corpses:** corpses are verlet ragdolls that remain shootable. They can be dismembered, have their heads popped or be gutted, spilling physics-simulated intestines, and they pool blood.
+
+**Characters & animation:**
+- **Locomotion:** walking and running use a foot-planted gait. Feet stay on the ground through each stance and swing forward on a lift arc, and IK solves the knees, so there's no foot sliding. Sprints have a flight phase. Each infected type has its own gait: shamble, jog, stomp, waddle, prowl or sprint. Footsteps play on the heel strike.
+- **Ladders:** climbing is hand over hand on the ladder's actual rungs, with your weapon slung on your back.
+- **Melee:** swings are keyframed per weapon. One-handed blades cut diagonally, the bat and the heavy weapons use two hands, and every swing has anticipation, torso drive, a step in and a follow-through. The kick chambers, extends and retracts. The infected rear back and lunge into their swipes.
+- **Models:** soft-blended shoulders, elbows and knees, gripping fists, cloth creases, rim lighting, detailed faces and hair, and survivor gear such as pouches, straps and boot tread.
 
 **AI:**
 - **Senses:** sight depends on light, flashlight, crouching and facing; hearing responds to gunshots, sprinting, doors and glass.

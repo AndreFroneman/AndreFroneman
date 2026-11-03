@@ -76,7 +76,7 @@ class Body {
       if (!this.missing.shB && !this.missing.thB) low = Math.max(low, j.footB.y);
       else if (!this.missing.thB) low = Math.max(low, j.kneeB.y);
       if (low === -Infinity) low = j.pelvis.y + d.waistT * 0.4;
-      const off = -d.footH - low;
+      const off = -d.footH - low - (p.air || 0); // air: both feet off the ground (running flight)
       for (const n of JOINTS) j[n].y += off;
       this.fitOff = off;
     }
@@ -122,6 +122,7 @@ class Body {
     ctx.scale(face, 1);
     this._M = ctx.getTransform();
     for (let layer = 0; layer <= 6; layer++) {
+      if (layer === 2 && hooks && hooks.back) hooks.back(ctx);   // between back limbs and torso
       if (layer === 5 && hooks && hooks.weapon) hooks.weapon(ctx);
       for (const b of BONES) {
         if (b.layer !== layer) continue;

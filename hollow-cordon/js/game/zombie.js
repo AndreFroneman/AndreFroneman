@@ -692,7 +692,7 @@ class Zombie {
     this.vx = 0; this.vy = this.climbDir * 70 * Math.min(1.6, this.speed / 50 + 0.6);
     this.y += this.vy * dt;
     this.phase += dt * 6;
-    this.body.pose = Pose.climb(d, this.phase);
+    this.body.pose = Pose.ladder(d, L, this.y, this.climbDir);
     this.body.fk(false);
     this.updateBBox();
     const endY = this.climbDir < 0 ? L.top : L.bottom;
@@ -757,46 +757,43 @@ class Zombie {
       this.updateBBox();
       return;
     }
-    const gait = def.gait;
-    const stride = gait === 'sprint' ? 34 : gait === 'stomp' ? 30 : gait === 'jog' ? 26 : gait === 'prowl' ? 30 : 20;
-    this.phase += dt * (speedNow / (stride * this.s)) * (gait === 'sprint' || gait === 'prowl' ? 3.3 : 2.6);
-    this.ringT = (this.ringT || 0) - dt;
+    const gait = def.gait, sc = this.s;
     const limpF = this.legCrippled('legF'), limpB = this.legCrippled('legB');
+    // foot-planted gait per locomotion style; stride is px per two-step cycle
+    const G = gait === 'sprint' ? { stride: 100 * sc, duty: 0.36, lift: 24 * sc, bob: 3.6 * sc, lean: 0.42, arm: 0 }
+      : gait === 'jog' ? { stride: 66 * sc, duty: 0.46, lift: 11 * sc, bob: 2.6 * sc, lean: 0.24 }
+      : gait === 'stomp' ? (this.chargeT > 0 ? { stride: 92 * sc, duty: 0.42, lift: 14 * sc, bob: 4.5 * sc, lean: 0.45 } : { stride: 46 * sc, duty: 0.64, lift: 7 * sc, bob: 4 * sc, lean: 0.16, knee: 3 * sc })
+      : gait === 'waddle' ? { stride: 26 * sc, duty: 0.72, lift: 3 * sc, bob: 2.4 * sc, lean: -0.08 }
+      : gait === 'prowl' ? { stride: 62 * sc, duty: 0.5, lift: 9 * sc, bob: 2.6 * sc, lean: 0.85, crouch: 14 * sc }
+      : { stride: 38 * sc, duty: 0.7, lift: 3.6 * sc, bob: 1.8 * sc, lean: 0.2, headTilt: Math.sin(this.phase * 0.5) * 0.15 }; // shamble
+    this.gAmp = approach(this.gAmp || 0, speedNow > 4 ? 1 : 0, dt * 6);
+    G.amp = this.gAmp; G.limpF = limpF; G.limpB = limpB;
+    if (speedNow > 4) this.phase += dt * TAU * speedNow / Math.max(G.stride * G.amp, G.stride * 0.35);
+    this.ringT = (this.ringT || 0) - dt;
+    target = Pose.gait(d, this.phase, G);
+    const s2 = Math.sin(this.phase);
     if (gait === 'jog') {
-      target = Pose.walk(d, this.phase, { amp: 0.62, knee: 0.95, lean: 0.24, bob: 3, limpF, limpB });
-      const s2 = Math.sin(this.phase);
       target.uaF = 0.3 + 0.25 * s2; target.faF = 0.1 + 0.2 * s2; target.uaB = 0.6 - 0.25 * s2; target.faB = 0.35;
-      if (speedNow < 10) target = Pose.walk(d, this.phase, { amp: 0.05, lean: 0.15 });
     } else if (gait === 'stomp') {
-      const amp = speedNow < 4 ? 0.04 : this.chargeT > 0 ? 0.7 : 0.38;
-      target = Pose.walk(d, this.phase, { amp, knee: 0.55, lean: this.chargeT > 0 ? 0.45 : 0.16, bob: 4.5, limpF, limpB });
-      const s2 = Math.sin(this.phase);
       target.uaF = Math.PI / 2 - 0.55 + 0.35 * s2; target.faF = target.uaF - 0.45; target.uaB = Math.PI / 2 - 0.35 - 0.35 * s2; target.faB = target.uaB - 0.4;
-      const sgn = Math.sign(Math.sin(this.phase));
+      const sgn = Math.sign(Math.sin(this.phase * 2));
       if (speedNow > 10 && sgn !== this.lastStep) { this.lastStep = sgn; Sfx.play('land', { x: this.x, y: this.y, vol: 0.5, rate: 0.7 }); const p = this.game.player; if (p && dist(p.x, p.y, this.x, this.y) < 500) this.game.shake(1.5); }
     } else if (gait === 'waddle') {
-      target = Pose.walk(d, this.phase, { amp: speedNow < 4 ? 0.04 : 0.26, knee: 0.4, lean: -0.08, bob: 2.6, limpF, limpB });
-      target.uaF = 1.05 + 0.1 * Math.sin(this.phase); target.faF = 0.9; target.uaB = 1.25; target.faB = 1.0;
+      target.uaF = 1.05 + 0.1 * s2; target.faF = 0.9; target.uaB = 1.25; target.faB = 1.0;
+      target.torso += Math.sin(this.phase * 2) * 0.05 * G.amp; // side-to-side heave
     } else if (gait === 'prowl') {
-      const amp = speedNow < 4 ? 0.05 : 0.7;
-      target = Pose.walk(d, this.phase, { amp, knee: 1.2, lean: 0.85, bob: 3, crouch: 1, limpF, limpB });
-      const s2 = Math.sin(this.phase);
       target.uaF = 1.0 + 0.55 * s2; target.faF = target.uaF + 0.25; target.uaB = 1.0 - 0.55 * s2; target.faB = target.uaB + 0.25;
       target.head = -0.35;
-      if (this.state === 'pounce') { target.uaF = -0.2; target.faF = -0.1; target.uaB = 0; target.faB = 0.1; target.torso = -0.5; target.head = -0.2; }
+      if (this.state === 'pounce') { target.uaF = -0.2; target.faF = -0.1; target.uaB = 0; target.faB = 0.1; target.torso = -0.5; target.head = -0.2; target.thF = 0.4; target.shF = 1.2; target.thB = 2.0; target.shB = 2.6; target.air = 0; }
     } else if (gait === 'sprint') {
-      target = Pose.walk(d, this.phase, { amp: 0.85, knee: 1.25, lean: 0.38, bob: 4, limpF, limpB });
-      const s = Math.sin(this.phase);
-      target.uaF = Math.PI / 2 - 0.9 * s; target.faF = target.uaF - 1.3; target.uaB = Math.PI / 2 + 0.9 * s; target.faB = target.uaB - 1.3;
-      if (speedNow < 20) target = Pose.walk(d, this.phase, { amp: 0.1, lean: 0.25 });
+      // arms pump opposite the legs, elbows at ~90°
+      const c2 = Math.cos(this.phase);
+      target.uaF = Math.PI / 2 + 0.95 * c2 * G.amp; target.faF = target.uaF - 1.45; target.uaB = Math.PI / 2 - 0.95 * c2 * G.amp; target.faB = target.uaB - 1.45;
     } else {
-      const amp = speedNow < 4 ? 0.05 : 0.42;
-      target = Pose.walk(d, this.phase, { amp, knee: 0.6, lean: 0.2, bob: 1.8, limpF, limpB, headTilt: Math.sin(this.phase * 0.5) * 0.15 });
-      const s = Math.sin(this.phase * 1.0 + 0.6);
-      // reaching arms
-      target.uaF = 0.15 + 0.12 * s; target.faF = 0.05 + 0.15 * s;
-      target.uaB = 0.4 - 0.1 * s; target.faB = 0.25 - 0.1 * s;
-      if (limpF) { target.thF += 0.2; target.shF += 0.25; }
+      // shamble: arms reach for prey, head lolls
+      const r = Math.sin(this.phase + 0.6);
+      target.uaF = 0.15 + 0.12 * r; target.faF = 0.05 + 0.15 * r;
+      target.uaB = 0.4 - 0.1 * r; target.faB = 0.25 - 0.1 * r;
     }
     if (this.state === 'attack' || this.state === 'bash') {
       const w = def.wind, t = this.atkT;
@@ -809,15 +806,23 @@ class Zombie {
         target.uaF = -0.9 + (strike ? 1.4 : -k * 0.6) + alt * 0.1; target.faF = target.uaF - 0.3;
         target.uaB = -0.6 + (strike ? 1.2 : -k * 0.5); target.faB = target.uaB - 0.2;
       } else {
-        target.uaF = strike ? 0.35 : -1.3 * k + 0.2; target.faF = strike ? 0.25 : -1.7 * k + 0.1;
-        target.uaB = strike ? 0.5 : -1.0 * k + 0.4; target.faB = strike ? 0.4 : -1.3 * k + 0.3;
+        // claws raised and drawn back, then a downward swipe
+        target.uaF = strike ? 0.5 : -1.8 * k + 0.2; target.faF = strike ? 0.8 : -2.3 * k + 0.1;
+        target.uaB = strike ? 0.7 : -1.4 * k + 0.4; target.faB = strike ? 1.0 : -1.8 * k + 0.3;
+      }
+      // the body throws itself into the hit: rock back on the wind-up, lunge on the strike
+      if (this.grounded && !this.crawl) {
+        const lunge = strike ? 1 : -0.35 * k;
+        Pose.stance(d, target, (3.5 + 11 * lunge) * this.s, (5 + 3 * Math.abs(lunge)) * this.s, (2 + 4 * Math.max(0, lunge)) * this.s);
+        if (!this.biteOnly()) target.torso = -Math.PI / 2 + (strike ? 0.5 : 0.05 - k * 0.2);
+        target.head = target.torso + (strike ? 0.25 : -0.1);
       }
     }
     if (this.state === 'scream') { const k = Math.min(1, (1.7 - this.stateT) * 3); target.torso = -Math.PI / 2 - 0.35 * k; target.head = -Math.PI / 2 - 0.9 * k; target.uaF = -0.9 * k + 0.6; target.faF = -1.4 * k + 0.5; target.uaB = -0.6 * k + 0.8; target.faB = -1.2 * k + 0.6; }
     if (this.state === 'stagger') { target.torso = -Math.PI / 2 - 0.35; target.head = -Math.PI / 2 - 0.5; target.uaF = 1.8; target.faF = 2.2; target.uaB = -0.4; target.faB = 0.2; }
     if (this.state === 'getup') { const k = 1 - Math.max(0, this.stateT) / 0.8; Pose.blend(this.body.pose, target, k * k); this.body.fk(true); this.updateBBox(); return; }
     if (!this.grounded && !(this.lunging > 0) && this.state !== 'pounce') { target.thF = 0.9; target.shF = 1.9; target.thB = 1.5; target.shB = 2.2; }
-    Pose.blend(this.body.pose, target, Math.min(1, dt * (this.state === 'attack' ? 22 : 14)));
+    Pose.blend(this.body.pose, target, Math.min(1, dt * (this.state === 'attack' ? 22 : 14 + 18 * (this.gAmp || 0))));
     this.body.fk(true);
     this.updateBBox();
   }

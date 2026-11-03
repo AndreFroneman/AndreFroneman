@@ -349,28 +349,213 @@ defWeapon({
   },
 });
 
+// ---------------------------------------------------------------- detail pass
+// Extra details drawn over each weapon's silhouette (same coordinates as
+// its art.parts): serrations, ejection ports, rails, vents, pins, screws,
+// blade edges and wear.
+const GUN_DETAIL = {
+  machete: [['edge', [7.5, 1.6, 50, 1.4, 53.6, -2.3]], ['rust', 12, -3.4, 36, 4.6, 16], ['pin', 0, 0, 0.75], ['pin', 5.5, 0, 0.75]],
+  bat: [['tape', -6, -2.1, 11, 4.2], ['rust', 34, -3.5, 18, 7, 6]],
+  axe: [['pin', 50.5, -0.5, 0.9], ['rust', 45, -12, 10, 22, 8], ['edge', [60.5, -13.5, 60.5, 11.5]]],
+  sledge: [['rust', 50, -10, 13, 20, 12], ['tape', -6, -1.8, 13, 3.6], ['pin', 56.5, 0, 1]],
+  p9: [['port', 9.5, -7.4, 6, 2.2], ['pin', 4.6, 0.6, 0.5], ['pin', 9.5, -1, 0.5]],
+  keeper: [['port', 9, -7.9, 6, 2.2], ['screw', 1.4, 2.6, 0.8], ['screw', 0.4, 9, 0.8], ['pin', 5.2, -0.6, 0.5]],
+  magistrate: [['pin', 7, -4.4, 0.75], ['screw', -1.3, -4.5, 0.6], ['screw', 0.4, 5.2, 0.7]],
+  bastion: [['pin', 7.5, -5, 0.8], ['screw', -1.4, -5, 0.6], ['screw', 0.6, 5.5, 0.7]],
+  vex: [['rail', 0, -10.6, 16], ['port', 10, -7.2, 7, 2.2], ['vents', 25.5, -6, 11, 2.4, 4], ['pin', 2, -2.8, 0.5], ['pin', 16, -2.8, 0.5]],
+  ratchet: [['port', 9, -7.6, 6, 2.2], ['serr', -2.5, -8.2, 6, 2.2, 5], ['pin', 14, -2.2, 0.5]],
+  kestrel: [['vents', -16, -6.5, 10, 2.4, 4], ['port', -18.5, -1.4, 5, 2], ['pin', 8, -3, 0.5], ['pin', 15, -3, 0.5]],
+  parish: [['port', 6, -6.3, 7, 2.2], ['pin', -1, -2.4, 0.6], ['pin', 15, -2.4, 0.6]],
+  breaker: [['screw', -3, -3.4, 0.6], ['screw', 2.8, -3.4, 0.6], ['pin', -1.2, -6, 0.45]],
+  thresher: [['rail', -2, -10, 20], ['port', 6, -7.3, 7, 2.2], ['vents', 24, -3.8, 12, 2, 4], ['pin', -1, -2, 0.5], ['pin', 16, -2, 0.5]],
+  mauler: [['rail', 0, -14, 22], ['port', 6, -8, 7, 2.4], ['vents', 33, -6.4, 13, 1.8, 4], ['pin', 26, -3, 0.55]],
+  kolba: [['port', 7, -6.6, 7, 2.2], ['serr', 16, -9.3, 5, 2.4, 5], ['pin', -3, -2.2, 0.55], ['pin', 3, -2.2, 0.55], ['pin', 21, -2.2, 0.55], ['pin', 21, -5.4, 0.55]],
+  c7: [['rail', -5, -10.2, 26], ['port', 8, -8.6, 7, 2.2], ['vents', 24, -6.6, 14, 2, 4], ['pin', 1, -4, 0.5], ['pin', 13, -4, 0.5]],
+  spindle: [['port', -18, -7.2, 6, 2.2], ['vents', 8, -7.2, 10, 2.2, 4], ['pin', -8, -4, 0.5], ['pin', 14, -4, 0.5]],
+  graver: [['rail', 6, -13, 14], ['port', 8, -8.2, 8, 2.4], ['vents', 27.5, -6.4, 14, 2.4, 4], ['vents', 63.5, -7, 4, 2.4, 2], ['pin', 0, -3, 0.55], ['pin', 20, -3, 0.55]],
+  longshank: [['port', 3, -8.6, 7, 2], ['screw', -2.5, -0.5, 0.6], ['pin', 10, -7.5, 0.5]],
+  palehorse: [['port', 4, -8.2, 7, 2], ['screw', -4.5, -2.8, 0.6], ['screw', 30, 0, 0.55]],
+  ironwake: [['rail', -4, -14.6, 26], ['port', 20, -9.4, 9, 2.6], ['vents', 85, -8.8, 7.5, 3, 2], ['pin', 0, -4, 0.6], ['pin', 30, -4, 0.6], ['pin', 40, 0, 0.9]],
+  brushfire: [['rail', -2, -13.6, 22], ['vents', 33.5, -7, 15, 2.4, 5], ['port', 12, -2.4, 8, 1.8], ['pin', 0, -4, 0.6], ['pin', 26, -4, 0.6]],
+  grinder: [['rail', -2, -15, 26], ['port', 14, -2.6, 9, 1.8], ['pin', 0, -5, 0.6], ['pin', 30, -5, 0.6], ['pin', 58, -3, 0.9]],
+};
+
 // ---------------------------------------------------------------- art baking
 const GunArt = (() => {
-  const RES = 2.5;
+  const RES = 3;
   const cache = {};
-  function drawParts(c, parts) {
+  // ------------------------------------------------ materials
+  // Each part's colour picks its material: steel, bright (polished /
+  // chrome / blades), poly (polymer furniture), wood, rubber, paint,
+  // brass or glass (optics). The material sets the shading and texture.
+  const MAT = {
+    [GCOL.steel]: 'steel', [GCOL.steelD]: 'steel', [GCOL.steelL]: 'steel', '#888': 'steel', '#333': 'steel', '#444': 'steel', '#000': 'steel',
+    [GCOL.chrome]: 'bright', '#a8aeb4': 'bright', '#b8bcc0': 'bright', '#6f7377': 'bright', '#ddd': 'bright',
+    [GCOL.poly]: 'poly', [GCOL.polyL]: 'poly', '#1c1c1c': 'poly', '#1e1e1e': 'rubber', '#3a3d33': 'poly', '#3f4436': 'poly', '#6a7466': 'poly', '#6a6048': 'poly', '#4a4c37': 'paint', [GCOL.olive]: 'paint', [GCOL.tan]: 'poly',
+    [GCOL.wood]: 'wood', [GCOL.woodD]: 'wood', [GCOL.woodL]: 'wood',
+    [GCOL.rubber]: 'rubber', [GCOL.brass]: 'brass', '#8a1a14': 'paint', [GCOL.red]: 'paint',
+    '#3a6a7a': 'glass', '#4a7a8a': 'glass',
+  };
+  const matOf = (col) => (typeof col === 'string' && col[0] === '#' ? MAT[col] || 'steel' : 'none');
+  function path(c, p) {
+    c.beginPath();
+    const t = p[0];
+    if (t === 'r') { if (p[6]) roundRect(c, p[1], p[2], p[3], p[4], p[6]); else c.rect(p[1], p[2], p[3], p[4]); }
+    else if (t === 'p') poly(c, p[1]);
+    else if (t === 'c') c.arc(p[1], p[2], p[3], 0, TAU);
+  }
+  // vertical shading ramps: [stop, lightness shift]
+  const RAMP = {
+    steel: [[0, 0.32], [0.14, 0.1], [0.5, -0.04], [0.86, -0.38], [1, -0.18]],
+    bright: [[0, 0.6], [0.2, 0.18], [0.42, -0.1], [0.56, 0.28], [0.8, -0.25], [1, -0.45]],
+    poly: [[0, 0.14], [0.3, 0.04], [1, -0.32]],
+    wood: [[0, 0.22], [0.18, 0.08], [0.6, -0.06], [1, -0.38]],
+    rubber: [[0, 0.08], [1, -0.3]],
+    paint: [[0, 0.22], [0.35, 0.02], [1, -0.36]],
+    brass: [[0, 0.55], [0.3, 0.15], [0.7, -0.15], [1, -0.4]],
+    glass: [[0, 0.4], [0.5, -0.2], [1, -0.5]],
+  };
+  function texture(c, mat, col, bb, rng) {
+    const [x0, y0, x1, y1] = bb, w = x1 - x0, h = y1 - y0;
+    const g = c.createLinearGradient(0, y0, 0, y1);
+    for (const [t, a] of RAMP[mat]) g.addColorStop(t, a >= 0 ? rgba(shade(col, a), 1) : rgba(shade(col, a), 1));
+    c.fillStyle = g; c.fillRect(x0 - 1, y0 - 1, w + 2, h + 2);
+    if (mat === 'steel' || mat === 'bright') {
+      // brushed finish + a hard specular line under the top edge
+      for (let i = 0; i < w * h * 0.35; i++) { c.fillStyle = rng() < 0.5 ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.07)'; c.fillRect(x0 + rng() * w, y0 + rng() * h, rng.range(1.5, 5), 0.18); }
+      c.fillStyle = mat === 'bright' ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.18)'; c.fillRect(x0, y0 + Math.min(1, h * 0.18), w, 0.35);
+    } else if (mat === 'poly' || mat === 'rubber' || mat === 'paint') {
+      for (let i = 0; i < w * h * 1.4; i++) { c.fillStyle = rng() < 0.5 ? 'rgba(255,255,255,0.045)' : 'rgba(0,0,0,0.09)'; c.fillRect(x0 + rng() * w, y0 + rng() * h, 0.32, 0.32); }
+      if (mat === 'paint') { // chipped edges show bare metal
+        for (let i = 0; i < (w + h) * 0.6; i++) { const e = rng() < 0.5; c.fillStyle = 'rgba(170,170,165,0.55)'; c.fillRect(e ? x0 + rng() * w : (rng() < 0.5 ? x0 : x1 - 0.6), e ? (rng() < 0.5 ? y0 : y1 - 0.6) : y0 + rng() * h, rng.range(0.3, 1), rng.range(0.3, 0.8)); }
+      }
+    } else if (mat === 'wood') {
+      // long grain lines following the part, a few darker figure streaks and knots
+      for (let i = 0; i < h * 2.2; i++) {
+        let y = y0 + rng() * h; const a = rng.range(0.12, 0.3);
+        c.strokeStyle = `rgba(30,14,4,${a})`; c.lineWidth = rng.range(0.18, 0.4);
+        c.beginPath(); c.moveTo(x0 - 1, y);
+        for (let x = x0; x <= x1 + 2; x += 3) { y += rng.range(-0.25, 0.25); c.lineTo(x, y); }
+        c.stroke();
+      }
+      for (let i = 0; i < w * 0.05; i++) { c.fillStyle = 'rgba(25,10,2,0.35)'; c.beginPath(); c.ellipse(x0 + rng() * w, y0 + rng() * h, rng.range(0.6, 1.4), rng.range(0.3, 0.6), 0, 0, TAU); c.fill(); }
+      c.fillStyle = 'rgba(255,220,170,0.12)'; c.fillRect(x0, y0 + h * 0.18, w, Math.max(0.4, h * 0.12)); // varnish sheen
+    } else if (mat === 'brass') {
+      c.fillStyle = 'rgba(255,240,190,0.4)'; c.fillRect(x0, y0 + h * 0.2, w, 0.3);
+    } else if (mat === 'glass') {
+      const r = c.createRadialGradient(x0 + w * 0.35, y0 + h * 0.3, 0, x0 + w * 0.5, y0 + h * 0.5, Math.max(w, h));
+      r.addColorStop(0, 'rgba(220,250,255,0.75)'); r.addColorStop(0.3, 'rgba(120,190,210,0.3)'); r.addColorStop(1, 'rgba(0,10,20,0)');
+      c.fillStyle = r; c.fillRect(x0, y0, w, h);
+    }
+  }
+  function drawSolid(c, p, rng) {
+    const t = p[0], col = t === 'r' ? p[5] : t === 'p' ? p[2] : p[4], mat = matOf(col);
+    if (mat === 'none') { path(c, p); c.fillStyle = col; c.fill(); return; }
+    const bb = partBounds(p);
+    // base with a soft contact shadow cast onto the parts beneath
+    c.save(); c.shadowColor = 'rgba(0,0,0,0.5)'; c.shadowBlur = 1.6 * RES; c.shadowOffsetY = 0.55 * RES;
+    path(c, p); c.fillStyle = col; c.fill(); c.restore();
+    c.save(); path(c, p); c.clip();
+    texture(c, mat, col, bb, rng);
+    // bevel: light catches the top edges, the bottom edges fall into shadow
+    c.translate(0, 0.65); path(c, p); c.strokeStyle = mat === 'bright' || mat === 'brass' ? 'rgba(255,255,255,0.55)' : mat === 'steel' ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.18)'; c.lineWidth = 0.6; c.stroke();
+    c.translate(0, -1.3); path(c, p); c.strokeStyle = 'rgba(0,0,0,0.45)'; c.lineWidth = 0.7; c.stroke();
+    c.restore();
+    path(c, p); c.lineWidth = 0.5; c.strokeStyle = 'rgba(0,0,0,0.9)'; c.stroke();
+  }
+  // ------------------------------------------------ detail primitives
+  function drawDetail(c, p, rng) {
+    const t = p[0];
+    if (t === 'serr') { // slide / grip serrations
+      const [, x, y, w, h, n] = p;
+      for (let i = 0; i < n; i++) { const xx = x + (i + 0.5) * w / n; c.fillStyle = 'rgba(0,0,0,0.75)'; c.fillRect(xx - 0.25, y, 0.5, h); c.fillStyle = 'rgba(255,255,255,0.16)'; c.fillRect(xx + 0.3, y, 0.3, h); }
+    } else if (t === 'rail') { // picatinny rail
+      const [, x, y, w] = p;
+      c.fillStyle = '#17191b'; c.fillRect(x, y, w, 1.7);
+      for (let xx = x + 0.4; xx < x + w - 0.8; xx += 1.7) { c.fillStyle = '#2a2d31'; c.fillRect(xx, y - 1.1, 1.0, 1.2); c.fillStyle = 'rgba(255,255,255,0.22)'; c.fillRect(xx, y - 1.1, 1.0, 0.25); }
+      c.fillStyle = 'rgba(255,255,255,0.12)'; c.fillRect(x, y, w, 0.3);
+    } else if (t === 'port') { // ejection port
+      const [, x, y, w, h] = p;
+      c.fillStyle = '#070708'; c.fillRect(x, y, w, h);
+      c.fillStyle = 'rgba(176,138,58,0.7)'; c.fillRect(x + w * 0.25, y + h * 0.3, w * 0.5, h * 0.45); // case visible in the chamber
+      c.fillStyle = 'rgba(255,255,255,0.28)'; c.fillRect(x, y + h - 0.3, w, 0.3);
+    } else if (t === 'pin' || t === 'screw') {
+      const [, x, y, r = 0.7] = p;
+      const g = c.createRadialGradient(x - r * 0.3, y - r * 0.3, 0, x, y, r);
+      g.addColorStop(0, '#9aa0a6'); g.addColorStop(1, '#1a1c1e');
+      c.fillStyle = g; c.beginPath(); c.arc(x, y, r, 0, TAU); c.fill();
+      if (t === 'screw') { c.strokeStyle = 'rgba(0,0,0,0.85)'; c.lineWidth = 0.25; c.beginPath(); c.moveTo(x - r * 0.7, y + r * 0.3); c.lineTo(x + r * 0.7, y - r * 0.3); c.stroke(); }
+    } else if (t === 'vents') { // row of cooling slots
+      const [, x, y, w, h, n] = p;
+      for (let i = 0; i < n; i++) { const xx = x + i * w / n + 0.3; roundRect(c, xx, y, w / n - 0.8, h, Math.min(h, w / n) * 0.45); c.fillStyle = '#060607'; c.fill(); c.fillStyle = 'rgba(255,255,255,0.18)'; c.fillRect(xx, y + h - 0.25, w / n - 0.8, 0.25); }
+    } else if (t === 'tape') { // grip tape wrap
+      const [, x, y, w, h] = p;
+      c.save(); c.beginPath(); c.rect(x, y, w, h); c.clip();
+      c.strokeStyle = 'rgba(255,255,255,0.13)'; c.lineWidth = 0.45;
+      for (let xx = x - h; xx < x + w; xx += 1.4) { c.beginPath(); c.moveTo(xx, y + h); c.lineTo(xx + h, y); c.stroke(); }
+      c.restore();
+    } else if (t === 'edge') { // sharpened edge bevel along a blade
+      const [, pts] = p;
+      c.strokeStyle = 'rgba(235,240,245,0.85)'; c.lineWidth = 0.7; c.beginPath(); c.moveTo(pts[0], pts[1]); for (let i = 2; i < pts.length; i += 2) c.lineTo(pts[i], pts[i + 1]); c.stroke();
+    } else if (t === 'rust') {
+      const [, x, y, w, h, n] = p;
+      for (let i = 0; i < n; i++) { c.fillStyle = `rgba(${rng.int(90, 130)},${rng.int(40, 60)},20,${rng.range(0.25, 0.6)})`; c.beginPath(); c.ellipse(x + rng() * w, y + rng() * h, rng.range(0.3, 1.3), rng.range(0.2, 0.7), rng() * 3, 0, TAU); c.fill(); }
+    }
+  }
+  // ------------------------------------------------ automatic details from the geometry
+  function autoDetail(c, parts, rng, isMag) {
+    for (const p of parts) {
+      if (p[0] !== 'r' && p[0] !== 'p') continue;
+      const col = p[0] === 'r' ? p[5] : p[2], mat = matOf(col);
+      if (mat === 'none' || mat === 'glass') continue;
+      const [x0, y0, x1, y1] = partBounds(p), w = x1 - x0, h = y1 - y0;
+      c.save(); path(c, p); c.clip();
+      if (isMag) {
+        // magazine: stamped ridges and a lighter base plate
+        c.strokeStyle = 'rgba(255,255,255,0.1)'; c.lineWidth = 0.35;
+        for (let i = 1; i < 3; i++) { c.beginPath(); c.moveTo(x0 + w * 0.22 * i, y0 + 0.8); c.lineTo(x0 + w * 0.22 * i + w * 0.18, y1 - 1.4); c.stroke(); }
+        c.fillStyle = 'rgba(255,255,255,0.14)'; c.fillRect(x0, y1 - 1.3, w, 1.3);
+      } else if (p[0] === 'p' && y0 > -2.5 && h > 7 && x1 < 9 && x0 > -7 && h > w * 0.9) {
+        // pistol grip: checkering (synthetic) or a grip panel with screw (wood)
+        if (mat === 'wood') { c.fillStyle = 'rgba(0,0,0,0.18)'; c.fillRect(x0, y0, w, h); }
+        c.strokeStyle = mat === 'wood' ? 'rgba(20,8,2,0.45)' : 'rgba(0,0,0,0.42)'; c.lineWidth = 0.3;
+        for (let k = -h; k < w + h; k += 1.1) { c.beginPath(); c.moveTo(x0 + k, y0 + 1.5); c.lineTo(x0 + k + h, y1); c.stroke(); c.beginPath(); c.moveTo(x0 + k + h, y0 + 1.5); c.lineTo(x0 + k, y1); c.stroke(); }
+      } else if ((mat === 'steel' || mat === 'bright') && p[0] === 'r' && h <= 3.4 && w >= 10) {
+        // barrel / tube: dark bore line underneath and a bright crown at the muzzle end
+        c.fillStyle = 'rgba(0,0,0,0.35)'; c.fillRect(x0, y1 - h * 0.25, w, h * 0.25);
+        c.fillStyle = 'rgba(220,225,230,0.5)'; c.fillRect(x1 - 0.5, y0, 0.5, h);
+      } else if (mat === 'rubber' && h > w * 2) {
+        for (let yy = y0 + 1; yy < y1; yy += 1.3) { c.fillStyle = 'rgba(255,255,255,0.08)'; c.fillRect(x0, yy, w, 0.35); }
+      } else if ((mat === 'steel' || mat === 'poly' || mat === 'paint') && p[0] === 'r' && h >= 5 && w >= 14) {
+        // receiver / slide: machined panel line and a darker lower flat
+        c.fillStyle = 'rgba(0,0,0,0.38)'; c.fillRect(x0 + 1, y0 + h * 0.42, w - 2, 0.35);
+        c.fillStyle = 'rgba(255,255,255,0.08)'; c.fillRect(x0 + 1, y0 + h * 0.42 + 0.35, w - 2, 0.25);
+        c.fillStyle = 'rgba(0,0,0,0.12)'; c.fillRect(x0, y0 + h * 0.45, w, h * 0.55);
+      } else if ((mat === 'poly' || mat === 'paint') && p[0] === 'p' && x1 < -4 && w > 14) {
+        // synthetic stock: recessed side panel
+        c.strokeStyle = 'rgba(0,0,0,0.45)'; c.lineWidth = 0.4;
+        c.beginPath(); c.moveTo(x0 + w * 0.18, y0 + h * 0.45); c.lineTo(x1 - w * 0.12, y0 + h * 0.35); c.stroke();
+        c.strokeStyle = 'rgba(255,255,255,0.07)'; c.beginPath(); c.moveTo(x0 + w * 0.18, y0 + h * 0.45 + 0.4); c.lineTo(x1 - w * 0.12, y0 + h * 0.35 + 0.4); c.stroke();
+      }
+      c.restore();
+    }
+    // a trigger inside every trigger guard
+    for (const p of parts) if (p[0] === 'a') {
+      const [, x, y, r] = p;
+      c.strokeStyle = '#141516'; c.lineWidth = 0.9; c.lineCap = 'round';
+      c.beginPath(); c.moveTo(x - r * 0.15, y - r * 0.55); c.quadraticCurveTo(x + r * 0.35, y + r * 0.05, x - r * 0.05, y + r * 0.6); c.stroke();
+      c.strokeStyle = 'rgba(255,255,255,0.18)'; c.lineWidth = 0.3; c.stroke();
+    }
+  }
+  function drawParts(c, parts, rng, isMag) {
     for (const p of parts) {
       const t = p[0];
-      c.beginPath();
-      if (t === 'r') { if (p[6]) roundRect(c, p[1], p[2], p[3], p[4], p[6]); else c.rect(p[1], p[2], p[3], p[4]); }
-      else if (t === 'p') poly(c, p[1]);
-      else if (t === 'c') c.arc(p[1], p[2], p[3], 0, TAU);
-      else if (t === 'a') { c.lineWidth = 1.1; c.strokeStyle = p[4]; c.arc(p[1], p[2], p[3], 0, Math.PI); c.stroke(); continue; }
-      else if (t === 'l') { c.lineWidth = p[5]; c.strokeStyle = p[6]; c.moveTo(p[1], p[2]); c.lineTo(p[3], p[4]); c.stroke(); continue; }
-      const col = t === 'r' ? p[5] : t === 'p' ? p[2] : p[4];
-      c.fillStyle = col; c.fill();
-      // shading: top highlight, bottom shadow
-      const bb = partBounds(p);
-      const g = c.createLinearGradient(0, bb[1], 0, bb[3]);
-      g.addColorStop(0, 'rgba(255,255,255,0.22)'); g.addColorStop(0.35, 'rgba(255,255,255,0.03)'); g.addColorStop(1, 'rgba(0,0,0,0.42)');
-      c.fillStyle = g; c.fill();
-      c.lineWidth = 0.55; c.strokeStyle = 'rgba(0,0,0,0.85)'; c.stroke();
+      if (t === 'a') { c.beginPath(); c.lineWidth = 1.2; c.strokeStyle = 'rgba(0,0,0,0.8)'; c.arc(p[1], p[2], p[3], 0, Math.PI); c.stroke(); c.beginPath(); c.lineWidth = 0.8; c.strokeStyle = rgba(shade(p[4], 0.25), 1); c.arc(p[1], p[2] - 0.15, p[3], 0.15, Math.PI - 0.15); c.stroke(); continue; }
+      if (t === 'l') { c.beginPath(); c.lineWidth = p[5]; c.strokeStyle = p[6]; c.moveTo(p[1], p[2]); c.lineTo(p[3], p[4]); c.stroke(); continue; }
+      if (t === 'r' || t === 'p' || t === 'c') { drawSolid(c, p, rng); continue; }
+      drawDetail(c, p, rng);
     }
+    autoDetail(c, parts, rng, isMag);
   }
   function partBounds(p) {
     if (p[0] === 'r') return [p[1], p[2], p[1] + p[3], p[2] + p[4]];
@@ -385,27 +570,29 @@ const GunArt = (() => {
       let q;
       if (p[0] === 'l') q = [Math.min(p[1], p[3]), Math.min(p[2], p[4]), Math.max(p[1], p[3]), Math.max(p[2], p[4])];
       else if (p[0] === 'a') q = [p[1] - p[3], p[2] - p[3], p[1] + p[3], p[2] + p[3]];
-      else q = partBounds(p);
+      else if (p[0] === 'r' || p[0] === 'p' || p[0] === 'c') q = partBounds(p);
+      else continue; // detail primitives sit inside the silhouette
       b = [Math.min(b[0], q[0]), Math.min(b[1], q[1]), Math.max(b[2], q[2]), Math.max(b[3], q[3])];
     }
     return b;
   }
-  function bakeParts(parts, hand) {
+  function bakeParts(parts, hand, seed, isMag) {
     const b = bounds(parts);
-    const pad = 2;
+    const pad = 2.5;
     const ox = b[0] - hand[0] - pad, oy = b[1] - hand[1] - pad, w = b[2] - b[0] + pad * 2, h = b[3] - b[1] + pad * 2;
     const cv = makeCanvas(w * RES, h * RES), c = cv.getContext('2d');
     c.scale(RES, RES); c.translate(-ox - hand[0], -oy - hand[1]);
     c.lineJoin = 'round';
-    drawParts(c, parts);
+    drawParts(c, parts, makeRng(hashStr(seed)), isMag);
     return { cv, ox, oy, w, h };
   }
   function get(def) {
     if (cache[def.id]) return cache[def.id];
     const a = def.art;
-    const out = { body: bakeParts(a.parts, a.hand) };
-    if (a.mag) out.mag = bakeParts(a.mag, a.hand);
-    if (a.pumpParts) out.pump = bakeParts(a.pumpParts, [0, 0]);
+    const extra = GUN_DETAIL[def.id] || [];
+    const out = { body: bakeParts(a.parts.concat(extra), a.hand, def.id) };
+    if (a.mag) out.mag = bakeParts(a.mag, a.hand, def.id + 'm', true);
+    if (a.pumpParts) out.pump = bakeParts(a.pumpParts, [0, 0], def.id + 'p');
     // offsets relative to hand
     const rel = (p) => (p ? [p[0] - a.hand[0], p[1] - a.hand[1]] : null);
     out.muzzle = rel(a.muzzle) || [a.len || 20, -2];

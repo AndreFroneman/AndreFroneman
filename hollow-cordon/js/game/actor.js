@@ -95,8 +95,117 @@ const Phys = {
 // ---------------------------------------------------------------- poses
 const Pose = {
   set(p, o) { for (const k in o) p[k] = o[k]; },
-  blend(p, a, t) { for (const k in a) { if (k === 'px' || k === 'py') p[k] = lerp(p[k], a[k], t); else p[k] = lerpAngle(p[k], a[k], t); } },
+  blend(p, a, t) { for (const k in a) { if (k === 'px' || k === 'py' || k === 'air') p[k] = lerp(p[k] || 0, a[k], t); else p[k] = lerpAngle(p[k], a[k], t); } },
   stand(d) { return Body.standPose(d); },
+
+  // ------------------------------------------------------------ gait
+  // Foot-planted locomotion. Each foot is placed on the ground during its
+  // stance phase and travels back under the body at exactly the body's
+  // speed (no sliding, provided the caller advances ph by TAU * speed /
+  // stride per second), then swings forward on a lift arc. Knees come from
+  // 2-bone IK, the pelvis bobs (high at mid-stance when walking, low at
+  // mid-stance when running) and runs get a flight phase via pose.air.
+  //   ph      phase in radians; one cycle = one stride = two steps
+  //   stride  px travelled per cycle (×amp); duty = stance fraction (<0.5 runs)
+  //   amp     0 standing … 1 full stride; lift = swing foot clearance
+  //   crouch  px pelvis drop; lean = torso pitch; arm = arm-swing amplitude
+  gait(d, ph, o = {}) {
+    const s = d.s, legL = d.th + d.sh;
+    const amp = clamp(o.amp === undefined ? 1 : o.amp, 0, 1);
+    const S = (o.stride === undefined ? 70 * s : o.stride) * amp;
+    const duty = o.duty === undefined ? 0.6 : o.duty;
+    const run = duty < 0.5;
+    const lift = (o.lift === undefined ? 7 * s : o.lift) * Math.min(1, amp * 1.6);
+    const u = ((ph / TAU) % 1 + 1) % 1;
+    const bobA = (o.bob === undefined ? 2.2 * s : o.bob) * amp;
+    const crouch = o.crouch || 0;
+    const knee = (o.knee === undefined ? 1.2 : o.knee) * s; // standing knee flex (px of pelvis drop)
+    // pelvis height
+    const mid = Math.cos(2 * TAU * (u - duty / 2)); // +1 at mid-stance of either foot
+    let py = -(legL + d.footH) + knee + crouch;
+    py += run ? bobA * (0.5 + 0.5 * mid) : bobA * (0.5 - 0.5 * mid);
+    // feet
+    const foot = (v, limp, standX) => {
+      const k = limp ? 0.55 : 1;
+      let x, y = -d.footH, up = 0;
+      if (v < duty) { const t = v / duty; x = S * k * duty * (0.5 - t); }
+      else {
+        const t = (v - duty) / (1 - duty);
+        x = S * k * duty * (-0.5 + smooth(t));
+        up = lift * (limp ? 0.45 : 1) * Math.sin(Math.PI * Math.pow(t, run ? 0.7 : 0.9));
+        y -= up;
+      }
+      return [x + standX * (1 - amp) + (o.footFwd || 0), y, up];
+    };
+    const fF = foot(u, o.limpF, 3.5 * s), fB = foot((u + 0.5) % 1, o.limpB, -5 * s);
+    if (o.limpF && u < duty) py += 2.5 * s; else if (o.limpB && (u + 0.5) % 1 < duty) py += 2.5 * s;
+    const lF = ik2(0, py, fF[0], fF[1], d.th, d.sh, 1), lB = ik2(0, py, fB[0], fB[1], d.th, d.sh, 1);
+    const lean = o.lean === undefined ? 0.06 : o.lean;
+    const arm = (o.arm === undefined ? 0.5 : o.arm) * amp, sw = Math.cos(TAU * u);
+    const elbow = o.elbow === undefined ? (run ? 1.35 : 0.3) : o.elbow;
+    const uaF = Math.PI / 2 + arm * sw, uaB = Math.PI / 2 - arm * sw;
+    return {
+      px: o.px || 0, py,
+      air: run ? Math.max(0, Math.min(fF[2], fB[2]) - (fF[2] > 0 && fB[2] > 0 ? 0 : 1e9)) : 0,
+      torso: -Math.PI / 2 + lean + Math.sin(2 * TAU * u) * 0.025 * amp,
+      head: -Math.PI / 2 + lean * 0.35 + (o.headTilt || 0),
+      thF: lF[0], shF: lF[1], thB: lB[0], shB: lB[1],
+      uaF, faF: uaF - elbow, uaB, faB: uaB - elbow,
+    };
+  },
+  // stride length (px per cycle) a gait spec covers, for phase advance
+  strideOf(d, o) { return (o.stride === undefined ? 70 * d.s : o.stride); },
+  // planted fighting stance: front foot `front` px ahead, back foot `back`
+  // px behind, pelvis dropped by `drop`; legs solved by IK into pose p
+  stance(d, p, front, back, drop) {
+    p.py = -(d.th + d.sh + d.footH) + 1.2 * d.s + drop; p.air = 0;
+    const f = ik2(0, p.py, front, -d.footH, d.th, d.sh, 1), b = ik2(0, p.py, -back, -d.footH, d.th, d.sh, 1);
+    p.thF = f[0]; p.shF = f[1]; p.thB = b[0]; p.shB = b[1];
+    return p;
+  },
+  // sample a keyframe track: keys = [[t, {k: v, …}], …] sorted by t, eased per segment
+  keys(track, t) {
+    if (t <= track[0][0]) return track[0][1];
+    for (let i = 1; i < track.length; i++) {
+      const [t1, b] = track[i];
+      if (t <= t1) {
+        const [t0, a, ease] = track[i - 1];
+        const u = (t - t0) / ((t1 - t0) || 1), e = ease === 'in' ? u * u : ease === 'out' ? 1 - (1 - u) * (1 - u) : smooth(u);
+        const o = {};
+        for (const k in a) o[k] = lerp(a[k], b[k] === undefined ? a[k] : b[k], e);
+        return o;
+      }
+    }
+    return track[track.length - 1][1];
+  },
+
+  // ------------------------------------------------------------ ladder
+  // Hand-over-hand climbing on the ladder's real rungs (every 16 px from
+  // its top). Diagonal pairs move together (front hand + back foot, then
+  // back hand + front foot), each limb reaching two rungs at a time and
+  // gripping while the body pulls past; hands and feet are IK-placed.
+  // Returns a pose; arms and legs are solved, call fk(false) after.
+  ladder(d, L, y, dirY = -1) {
+    const s = d.s, R = 16;
+    const Ly = L.y !== undefined ? L.y : L.top, Lh = L.h !== undefined ? L.h : L.bottom - L.top; // world ladder or route link
+    const j0 = Math.floor((Lh - 1) / R), Yb = Ly + R * j0;
+    const c = (Yb - y) / R;
+    const py = -(d.th + d.sh + d.footH) + 7 * s;
+    const torso = -Math.PI / 2 + 0.1, head = -Math.PI / 2 + (dirY < 0 ? -0.3 : 0.25);
+    const limb = (o, base) => {
+      const t = (c + o) / 2, n = Math.floor(t), f = t - n;
+      const m = f < 0.5 ? smooth(f / 0.5) : 1;
+      const k = 2 * n + base + 2 * m;
+      return [Yb - R * k - y, f < 0.5 ? Math.sin(Math.PI * m) : 0];
+    };
+    const nx = Math.cos(torso) * d.torso, ny = Math.sin(torso) * d.torso;
+    const Sx = nx - Math.cos(torso) * d.shoulderDrop, Sy = py + ny - Math.sin(torso) * d.shoulderDrop;
+    // hands reach out to the rungs in front of the face; feet sit on rungs in front of the shins
+    const hand = (o, base) => { const [ly, a] = limb(o, base); return ik2(Sx, Sy, 12 * s - a * 4 * s, ly, d.ua, d.fa * 0.92, -1); };
+    const leg = (o, base) => { const [ly, a] = limb(o, base); return ik2(0, py, 8 * s - a * 3 * s, ly - d.footH - a * 2 * s, d.th, d.sh, 1); };
+    const hF = hand(0.55, 6), hB = hand(1.55, 5), fB = leg(0.55, -1), fF = leg(1.55, -2);
+    return { px: 0, py, torso, head, uaF: hF[0], faF: hF[1], uaB: hB[0], faB: hB[1], thF: fF[0], shF: fF[1], thB: fB[0], shB: fB[1], air: 0 };
+  },
   walk(d, ph, o = {}) {
     const amp = o.amp === undefined ? 0.45 : o.amp, knee = o.knee === undefined ? 0.75 : o.knee;
     const lean = o.lean || 0.05;

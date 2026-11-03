@@ -28,6 +28,47 @@ const SURVIVORS = [
   },
 ];
 
+// keyframe tracks for melee (segment time 0-3) and the kick (seconds)
+const MELEE_TRACKS = {
+  slash: [ // one-handed blade: cock over the shoulder, diagonal cut, follow through
+    [0, { arm: 0.5, blade: -0.75, torso: 0, step: 0, drop: 0, back: 1.9 }],
+    [1, { arm: -2.15, blade: -2.75, torso: -0.24, step: -2, drop: 1, back: 1.2 }, 'in'],
+    [1.45, { arm: -0.25, blade: -0.05, torso: 0.2, step: 9, drop: 3, back: 2.2 }],
+    [2, { arm: 1.0, blade: 1.6, torso: 0.34, step: 11, drop: 4, back: 2.5 }, 'out'],
+    [3, { arm: 0.5, blade: -0.75, torso: 0, step: 0, drop: 0, back: 1.9 }],
+  ],
+  bat: [ // two-handed: load behind the shoulder, drive through level, wrap
+    [0, { arm: 0.35, blade: -1.05, torso: 0, step: 0, drop: 0 }],
+    [1, { arm: -1.85, blade: -2.85, torso: -0.28, step: -3, drop: 2 }, 'in'],
+    [1.45, { arm: -0.15, blade: 0.05, torso: 0.18, step: 8, drop: 3 }],
+    [2, { arm: 0.85, blade: 1.85, torso: 0.3, step: 10, drop: 4 }, 'out'],
+    [3, { arm: 0.35, blade: -1.05, torso: 0, step: 0, drop: 0 }],
+  ],
+  chop: [ // axe: overhead, bend into the chop
+    [0, { arm: 0.4, blade: -1.2, torso: 0, step: 0, drop: 0 }],
+    [1, { arm: -2.35, blade: -3.05, torso: -0.32, step: -3, drop: 0 }, 'in'],
+    [1.5, { arm: -0.7, blade: -0.55, torso: 0.25, step: 9, drop: 4 }],
+    [2, { arm: 0.95, blade: 1.35, torso: 0.55, step: 13, drop: 8 }, 'out'],
+    [3, { arm: 0.4, blade: -1.2, torso: 0, step: 0, drop: 0 }],
+  ],
+  smash: [ // sledge: heave it right back, drop the whole body on it
+    [0, { arm: 0.45, blade: -1.1, torso: 0, step: 0, drop: 1 }],
+    [1, { arm: -2.5, blade: -3.15, torso: -0.36, step: -4, drop: 0 }, 'in'],
+    [1.5, { arm: -0.75, blade: -0.6, torso: 0.3, step: 9, drop: 5 }],
+    [2, { arm: 1.0, blade: 1.45, torso: 0.65, step: 14, drop: 10 }, 'out'],
+    [3, { arm: 0.45, blade: -1.1, torso: 0, step: 0, drop: 1 }],
+  ],
+};
+// th = thigh raise from vertical, knee = shin fold relative to thigh
+const KICK_TRACK = [
+  [0, { th: 0.1, knee: 0.15, torso: 0.05 }],
+  [0.1, { th: 1.6, knee: 1.9, torso: -0.16 }, 'out'],
+  [0.19, { th: 1.3, knee: 0.06, torso: -0.34 }],
+  [0.27, { th: 1.32, knee: 0.1, torso: -0.32 }],
+  [0.38, { th: 1.5, knee: 1.6, torso: -0.14 }],
+  [0.5, { th: 0.1, knee: 0.15, torso: 0.05 }],
+];
+
 class Player {
   constructor(game, x, y, surv) {
     this.game = game;
@@ -135,7 +176,8 @@ class Player {
     const crouching = ui.down && !this.onLadder && this.grounded;
     this.crouch = approach(this.crouch, crouching ? 1 : 0, dt * 7);
     this.h = this.standH - this.crouch * 26;
-    let sprint = ui.sprint && mv !== 0 && this.stamina > 2 && !crouching && mv === this.face;
+    // sprinting lowers the weapon; pulling the trigger brings it back up
+    let sprint = ui.sprint && mv !== 0 && this.stamina > 2 && !crouching && mv === this.face && !(ui.fire && def && def.cat !== 'melee');
     let spd = 185;
     if (sprint) { spd = 300; this.stamina = Math.max(0, this.stamina - 20 * dt); }
     else this.stamina = Math.min(100, this.stamina + 16 * dt);
@@ -160,17 +202,7 @@ class Player {
     Phys.move(this, dt, g, true);
     if (this.fellOut) { this.hurt(999, 1, null, true); return; }
     if (this.justLanded) { if (this.landV > 1000) { this.hurt((this.landV - 1000) * 0.12, 0, null, true); } if (this.landV > 300) Sfx.play('land', { vol: 0.45 }); }
-    // footsteps & noise
-    if (this.grounded && Math.abs(this.vx) > 20) {
-      this.phase += dt * Math.abs(this.vx) / 20 * 2.4 * (mv === this.face ? 1 : -1);
-      this.stepAcc += dt * Math.abs(this.vx);
-      if (this.stepAcc > (sprint ? 70 : 55)) {
-        this.stepAcc = 0;
-        const metal = this.ground && (this.ground.mat === 'metal' || this.ground.mat === 'grate');
-        Sfx.play(metal ? 'step_metal' : 'step', { vol: crouching ? 0.15 : sprint ? 0.5 : 0.3, rateVar: 0.15 });
-        if (sprint) g.noise(this.x, this.y, 320, true);
-      }
-    }
+    // footsteps are triggered by the gait's heel strikes (see animate)
     // visibility (how easily the infected spot you)
     const light = g.lightAt(this.x, this.y - 60);
     this.visibility = clamp(0.45 + light * 0.8 + (this.flashlight ? 0.35 : 0), 0.4, 1.6) * (crouching ? 0.7 : 1);
@@ -227,14 +259,20 @@ class Player {
     if (ui.reload) this.startReload();
     if (g.reloading) this.updateReload(dt, ui);
     // fire
-    let want = def.mode === 'auto' ? ui.fire : ui.firePressed;
+    // weapon lowered for a sprint: buffer the shot until it is back up
+    this.fireBuf = Math.max(0, (this.fireBuf || 0) - dt);
+    const lowered = (this.carry || 0) >= 0.35;
+    if (ui.firePressed && lowered) this.fireBuf = 0.3;
+    let want = def.mode === 'auto' ? ui.fire : ui.firePressed || this.fireBuf > 0;
     if (def.mode === 'burst') {
-      if (ui.firePressed && !(g.burstLeft > 0) && g.cool <= 0 && !g.reloading) g.burstLeft = def.burst || 3;
+      if ((ui.firePressed || this.fireBuf > 0) && !lowered && !(g.burstLeft > 0) && g.cool <= 0 && !g.reloading) g.burstLeft = def.burst || 3;
       want = g.burstLeft > 0;
     }
+    if (lowered) want = false;
     if (want && g.cool <= 0 && g.cycle <= 0) {
       if (g.reloading && def.reloadType === 'shell' && g.mag > 0) { g.reloading = false; if (def.mode === 'pump' && g.chamberEmpty) { g.cycle = def.cycleTime * 0.6; g.chamberEmpty = false; } return; }
       if (g.reloading) return;
+      this.fireBuf = 0;
       if (g.mag > 0 || this.infAmmo && def.mag === 0) this.shoot(g);
       else {
         Sfx.play('dry', { vol: 0.6 }); g.cool = 0.25; g.burstLeft = 0;
@@ -491,18 +529,50 @@ class Player {
   animate(dt, mv, crouching, sprint, ui) {
     const b = this.body, d = b.d, g = this.gun, def = g ? g.def : null;
     this.lastUi = ui;
+    const s = d.s, melee = def && def.cat === 'melee';
+    // low-ready carry while sprinting (guns only); raised again to fire
+    this.carry = approach(this.carry || 0, sprint && !melee && !(g && g.reloading) ? 1 : 0, dt * (sprint ? 5 : 9));
     let target;
-    if (this.onLadder) target = Pose.climb(d, this.phase * 3);
+    if (this.onLadder) target = Pose.ladder(d, this.onLadder, this.y, this.vy > 0 ? 1 : -1);
     else {
-      const moving = Math.abs(this.vx) > 15 && this.grounded;
-      const amp = moving ? (sprint ? 0.75 : 0.48) : 0.0;
-      target = Pose.walk(d, this.phase, { amp, knee: sprint ? 1.1 : 0.75, lean: sprint ? 0.2 : 0.06, bob: moving ? 2.2 : 0 });
-      if (!moving) { target.thF = Math.PI / 2 - 0.08; target.thB = Math.PI / 2 + 0.12; target.shF = Math.PI / 2 - 0.02; target.shB = Math.PI / 2 + 0.14; target.py += Math.sin(performance.now() / 700) * 0.6; }
-      if (this.crouch > 0.05) { Pose.crouchLegs(target, d, this.crouch); target.torso += 0.15 * this.crouch; }
-      if (!this.grounded) { target.thF = Math.PI / 2 - 0.7; target.shF = Math.PI / 2 + 0.6; target.thB = Math.PI / 2 + 0.2; target.shB = Math.PI / 2 + 0.9; }
-      if (this.kickT > 0.15) { const k = Math.sin((0.5 - this.kickT) / 0.35 * Math.PI); target.thF = Math.PI / 2 - 1.3 * k; target.shF = Math.PI / 2 - 1.1 * k + 0.2; target.torso = -Math.PI / 2 - 0.2 * k; }
+      const speed = Math.abs(this.vx);
+      const moving = speed > 12 && this.grounded;
+      const back = mv !== 0 && mv !== this.face;
+      const spec = this.crouch > 0.3 ? { stride: 54 * s, duty: 0.66, lift: 5 * s, bob: 1 * s, lean: 0.12 }
+        : sprint ? { stride: 150 * s, duty: 0.36, lift: 22 * s, bob: 3.2 * s, lean: 0.3, arm: 0.95 }
+        : back ? { stride: 66 * s, duty: 0.62, lift: 5 * s, bob: 1.6 * s, lean: -0.03 }
+        : { stride: 92 * s, duty: 0.56, lift: 8 * s, bob: 2.2 * s, lean: 0.07 };
+      this.gaitAmp = approach(this.gaitAmp || 0, moving ? 1 : 0, dt * 7);
+      spec.amp = this.gaitAmp;
+      spec.crouch = 17 * s * this.crouch;
+      const prevStep = Math.floor((((this.phase / TAU) % 1 + 1) % 1) * 2);
+      if (moving) this.phase += dt * TAU * speed / Math.max(spec.stride * spec.amp, spec.stride * 0.35) * (back ? -1 : 1);
+      target = Pose.gait(d, this.phase, spec);
+      if (this.crouch > 0.05) target.torso += 0.18 * this.crouch;
+      if (!moving) target.py += Math.sin(this.game.time * 1.4) * 0.6 * s; // breathing
+      // heel strike: footstep sound and (sprinting) noise
+      const step = Math.floor((((this.phase / TAU) % 1 + 1) % 1) * 2);
+      if (moving && step !== prevStep) {
+        const metal = this.ground && (this.ground.mat === 'metal' || this.ground.mat === 'grate');
+        Sfx.play(metal ? 'step_metal' : 'step', { vol: crouching ? 0.15 : sprint ? 0.5 : 0.3, rateVar: 0.15 });
+        if (sprint) this.game.noise(this.x, this.y, 320, true);
+      }
+      if (!this.grounded) {
+        // airborne: tuck while rising, reach for the ground while falling
+        const fall = clamp(this.vy / 600, -1, 1);
+        target.thF = Math.PI / 2 - 0.9 + fall * 0.5; target.shF = target.thF + 1.2 - fall * 0.7;
+        target.thB = Math.PI / 2 + 0.15 + fall * 0.2; target.shB = target.thB + 1.0 - fall * 0.5;
+        target.air = 0;
+      }
+      if (this.kickT > 0) {
+        // front kick: chamber the knee, snap the leg out, retract, plant
+        const K = Pose.keys(KICK_TRACK, 0.5 - this.kickT);
+        target.thF = Math.PI / 2 - K.th; target.shF = target.thF + K.knee; target.torso = -Math.PI / 2 + K.torso;
+        target.thB = Math.PI / 2 + 0.1; target.shB = Math.PI / 2 + 0.3; target.air = 0;
+      }
     }
-    Pose.blend(b.pose, target, Math.min(1, dt * 16));
+    this.gaitTarget = target;
+    Pose.blend(b.pose, target, Math.min(1, dt * (this.onLadder ? 22 : 20)));
     // torso/head toward aim
     const sh0 = b.j.shoulder;
     const sx = this.x + sh0.x * this.face, sy = this.y + sh0.y;
@@ -511,8 +581,9 @@ class Player {
     la = clamp(la, -1.35, 1.35);
     this.localAim = la;
     if (!this.onLadder) {
-      b.pose.torso = target.torso + la * 0.12 - (this.gunBack > 0 ? this.gunBack * 0.006 : 0);
-      b.pose.head = -Math.PI / 2 + la * 0.55;
+      const lk = lerp(la, 0.1, this.carry); // sprinting: look where you run
+      b.pose.torso = target.torso + lk * 0.12 - (this.gunBack > 0 ? this.gunBack * 0.006 : 0);
+      b.pose.head = -Math.PI / 2 + lk * 0.55 + (target.torso + Math.PI / 2) * 0.3;
     }
     b.fk(!this.onLadder && !this.vaulting);
     // ---- weapon & arms
@@ -527,6 +598,7 @@ class Player {
     if (def && def.cat === 'melee') { this.animateMelee(dt, def, la); return; }
     const gs = def ? GunArt.get(def) : null;
     const pistol = def && def.hold === 'pistol';
+    if (this.carry > 0) gunA = lerp(gunA, pistol ? 1.25 : 0.92, smooth(this.carry)); // low ready
     // reload choreography
     let magState = 'in'; // 'in' | 'out' | 'hand'
     let backTarget = null;
@@ -572,28 +644,46 @@ class Player {
     if (magState === 'hand' && gs && gs.mag) sup = rot([gs.mag.ox + gs.mag.w * 0.5, gs.mag.oy + gs.mag.h * 0.9]);
     const ikB = ik2(S.x, S.y, sup[0], sup[1], d.ua, d.fa * 0.92, -1);
     b.pose.uaB = ikB[0]; b.pose.faB = ikB[1];
+    if (pistol && this.carry > 0.5 && this.gaitTarget) { b.pose.uaB = this.gaitTarget.uaB; b.pose.faB = this.gaitTarget.faB; } // free arm pumps
     b.fk(false);
     this.magState = magState;
   }
+  // Melee: keyframed swings per weapon style. Tracks run on segment time
+  // (0-1 windup, 1-2 swing, 2-3 recover) so they follow each weapon's
+  // timings. arm = front-arm direction from the shoulder, blade = weapon
+  // angle, torso = lean, step/drop = lunge stance (px), back = free arm.
   animateMelee(dt, def, la) {
-    const b = this.body, d = b.d, S = b.j.shoulder;
-    const s = this.swing;
-    let armA, bladeRel;
-    if (s) {
-      const t = s.t, w = def.windup, sw = def.swing;
-      const hi = -2.3, lo = 0.9 + la * 0.3;
-      if (t < w) armA = lerp(0.4, hi, smooth(t / w));
-      else if (t < w + sw) armA = lerp(hi, lo, smooth((t - w) / sw));
-      else armA = lerp(lo, 0.4, smooth(Math.min(1, (t - w - sw) / def.recoverT)));
-      bladeRel = 0.5;
-    } else { armA = 0.5 + la * 0.3; bladeRel = -1.25; }
-    const reach = (d.ua + d.fa) * 0.8;
-    const hand = [S.x + Math.cos(armA) * reach, S.y + Math.sin(armA) * reach];
+    const b = this.body, d = b.d, sc = d.s;
+    const style = def.style || (def.heavy ? (def.blade ? 'chop' : 'smash') : def.blade ? 'slash' : 'bat');
+    const T = MELEE_TRACKS[style], two = style !== 'slash';
+    const sw = this.swing;
+    let k;
+    if (sw) {
+      const t = sw.t, w = def.windup, s2 = def.swing;
+      const st = t < w ? t / w : t < w + s2 ? 1 + (t - w) / s2 : 2 + Math.min(1, (t - w - s2) / def.recoverT);
+      k = Pose.keys(T, st);
+      const aimK = st > 1 && st < 2.6 ? la * 0.3 : 0; // strike height follows the aim
+      k = Object.assign({}, k, { arm: k.arm + aimK, blade: k.blade + aimK });
+    } else {
+      k = Object.assign({}, T[0][1], { arm: T[0][1].arm + la * 0.3, blade: T[0][1].blade + la * 0.3 });
+    }
+    // body drives the swing: lean into it, and lunge from a planted stance
+    b.pose.torso += k.torso;
+    if (this.grounded && (this.gaitAmp || 0) < 0.3 && !this.onLadder) Pose.stance(d, b.pose, (3.5 + k.step) * sc, (5 + Math.max(0, k.step) * 0.3) * sc, (1 + k.drop) * sc);
+    b.fk(true);
+    const S = b.j.shoulder;
+    const reach = (d.ua + d.fa) * (two ? 0.72 : 0.82);
+    const hand = [S.x + Math.cos(k.arm) * reach, S.y + Math.sin(k.arm) * reach];
     const ik = ik2(S.x, S.y, hand[0], hand[1], d.ua, d.fa * 0.92, -1);
     b.pose.uaF = ik[0]; b.pose.faF = ik[1];
-    b.pose.uaB = Math.PI / 2 + 0.4; b.pose.faB = Math.PI / 2 - 0.5;
+    if (two) {
+      // second hand further up the haft
+      const g = [hand[0] + Math.cos(k.blade) * 10 * sc, hand[1] + Math.sin(k.blade) * 10 * sc];
+      const ikB = ik2(S.x, S.y, g[0], g[1], d.ua, d.fa * 0.92, -1);
+      b.pose.uaB = ikB[0]; b.pose.faB = ikB[1];
+    } else { b.pose.uaB = k.back; b.pose.faB = k.back - 0.6; }
     b.fk(false);
-    const bladeA = armA + bladeRel;
+    const bladeA = k.blade;
     this.handLocal = [b.j.handF.x, b.j.handF.y]; this.gunAngLocal = bladeA;
     this.meleeAngWorld = this.face > 0 ? bladeA : Math.PI - bladeA;
   }
@@ -604,6 +694,17 @@ class Player {
     ctx.beginPath(); ctx.ellipse(this.x, this.y - 1, 17, 3, 0, 0, TAU); ctx.fill();
     const g = this.gun;
     this.body.draw(ctx, this.x, this.y, this.face, {
+      // climbing: weapon slung across the back (pistols holstered at the hip)
+      back: (c) => {
+        if (!g || !this.onLadder) return;
+        const gs = GunArt.get(g.def), j = this.body.j, R = GunArt.RES;
+        const pistol = g.def.hold === 'pistol';
+        const mx = lerp(j.pelvis.x, j.neck.x, pistol ? 0.05 : 0.55), my = lerp(j.pelvis.y, j.neck.y, pistol ? 0.05 : 0.55);
+        c.save(); c.translate(mx - this.body.d.torsoT * (pistol ? 0.1 : 0.42), my); c.rotate(pistol ? 1.45 : -Math.PI / 2 - 0.62);
+        const w = gs.full.width / R, h = gs.full.height / R, sc = pistol ? 0.9 : 1;
+        c.drawImage(gs.full, gs.body.ox * sc - w * sc * 0.42, gs.body.oy * sc, w * sc, h * sc);
+        c.restore();
+      },
       weapon: (c) => {
         if (!g || this.onLadder || !this.handLocal) return;
         const gs = GunArt.get(g.def);
