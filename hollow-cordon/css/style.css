@@ -156,3 +156,22 @@ canvas#game.editor { cursor: default; }
 .ed-dialog { background: rgba(0,0,0,0.6); }
 .ed-dialog .panel { width: min(640px, 100%); }
 .ed-row { display: grid; grid-template-columns: 1fr auto auto auto; gap: 8px; align-items: center; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+
+/* ---------------- campaign ---------------- */
+.continue { display: flex; gap: 14px; align-items: center; justify-content: space-between; border: 1px solid var(--accent); background: rgba(150, 36, 22, 0.15); padding: 10px 14px; margin: 4px 0 8px; }
+.continue .row { margin: 0; }
+.chapters { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 8px; }
+.card.chapter { width: auto; }
+.card.locked { opacity: 0.35; cursor: default; }
+.panel.narrow { width: min(720px, 100%); }
+.screen.brief, .screen.ending { background: rgba(0, 0, 0, 0.8); }
+.screen.brief p, .screen.ending p, p.debrief { font-size: 16px; line-height: 1.6; color: #d8ceb4; }
+.screen.ending p.last { font-size: 22px; letter-spacing: 3px; color: var(--text); text-align: center; margin-top: 22px; }
+.objectives { margin: 6px 0 4px 20px; padding: 0; color: var(--text); line-height: 1.7; }
+.credits { text-align: center; color: var(--dim); letter-spacing: 2px; font-size: 12px; margin: 22px 0 6px; line-height: 1.8; }
+
+/* ---------------- focus (keyboard / gamepad) ---------------- */
+button:focus-visible, .card:focus-visible, .segb:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--accent2); outline-offset: 2px; }
+.padfocus { outline: 2px solid var(--accent2) !important; outline-offset: 2px; }
+.binds.pad .padkey { color: var(--accent2); font-weight: 700; letter-spacing: 1px; text-align: right; }
+.binds.pad .bind { grid-template-columns: 1fr auto; }

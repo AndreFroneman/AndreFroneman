@@ -57,7 +57,7 @@
     id: 'factory', name: 'Varga Steelworks', subtitle: 'Industrial factory',
     desc: 'A cavernous steel hall lit by a furnace nobody dares bank. Two tiers of catwalks, shipping containers, gas cylinders — and the control room where the water results were buried.',
     theme: 'factory', width: 5200, height: 1400, horizon: G,
-    ambient: '#1e1a16', ambientLevel: 0.15, fog: 0.5, weather: 'ash', reverb: 0.6, amb: 'amb_factory', bias: { bloater: 1.6 },
+    ambient: '#1e1a16', ambientLevel: 0.15, fog: 0.5, weather: 'ash', reverb: 0.6, amb: 'amb_factory', bias: { bloater: 1.6, burner: 2.2 },
     objects: o,
   });
 })();

@@ -145,7 +145,7 @@ class Game {
 
   // ------------------------------------------------------------- services
   noise(x, y, r, quiet = false) { this.noises.push({ x, y, r, id: ++this.noiseId, life: quiet ? 0.3 : 0.6 }); }
-  shake(a) { this.cam.shake = Math.min(30, this.cam.shake + a * Settings.data.screenShake); }
+  shake(a) { this.cam.shake = Math.min(30, this.cam.shake + a * Settings.data.screenShake); if (a >= 2 && this.player && !this.noPlayer) Input.rumble(Math.min(1, a / 14), 60 + Math.min(240, a * 14)); }
   camKick(x, y) { this.cam.kx += x * Settings.data.screenShake; this.cam.ky += y * Settings.data.screenShake; }
   hitstop(t) { this.hitstopT = Math.max(this.hitstopT, t); }
   damageFlash(a) { this.dmgFlash = Math.min(1, this.dmgFlash + a); }

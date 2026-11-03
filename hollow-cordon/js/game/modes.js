@@ -41,6 +41,7 @@ const WAVE_SPECIALS = [
   { type: 'shrieker', from: 6, w: 0.03, grow: 0.004 },
   { type: 'leaper', from: 7, w: 0.06, grow: 0.008 },
   { type: 'soldier', from: 8, w: 0.07, grow: 0.01 },
+  { type: 'burner', from: 5, w: 0.05, grow: 0.006 },
 ];
 
 class SurvivalMode {
@@ -54,9 +55,17 @@ class SurvivalMode {
   }
   start() {
     const p = this.game.player;
+    const R = this.opts.resume;
+    if (R && Loadout.apply(p, R.loadout)) {
+      Object.assign(this, { wave: R.wave, cash: R.cash, score: R.score, kills: R.kills, headshots: R.headshots, dismembers: R.dismembers, time: R.time });
+      this.breakT = 20;
+      this.game.hud.banner('RUN RESUMED', `Wave ${this.wave + 1} in 20s — ${Input.label('shop')} to shop`);
+      Sfx.loop(this.game.map.amb || 'amb_drone', 0.5);
+      return;
+    }
     p.give('machete'); p.give(p.surv.start, 4);
     p.medkits = 1; p.planks = 3;
-    this.game.hud.banner('SURVIVE', 'Wave 1 in ' + Math.ceil(this.breakT) + 's — press ' + keyLabel(Settings.data.bindings.nextWave[0]) + ' to start now, ' + keyLabel(Settings.data.bindings.shop[0]) + ' to shop');
+    this.game.hud.banner('SURVIVE', 'Wave 1 in ' + Math.ceil(this.breakT) + 's — press ' + Input.label('nextWave') + ' to start now, ' + Input.label('shop') + ' to shop');
     Sfx.loop(this.game.map.amb || 'amb_drone', 0.5);
   }
   addCash(n) { this.cash += n; }
@@ -138,9 +147,24 @@ class SurvivalMode {
     this.cash += bonus;
     this.score += this.wave * 100;
     Sfx.play('wave_clear', { vol: 0.8 });
-    this.game.hud.banner('WAVE ' + this.wave + ' SURVIVED', `+$${bonus}  ·  ${keyLabel(Settings.data.bindings.shop[0])}: shop  ·  ${keyLabel(Settings.data.bindings.nextWave[0])}: next wave`);
+    this.game.hud.banner('WAVE ' + this.wave + ' SURVIVED', `+$${bonus}  ·  ${Input.label('shop')}: shop  ·  ${Input.label('nextWave')}: next wave`);
     const p = this.game.player; if (p && !p.dead) p.hp = Math.min(p.maxHp, p.hp + 15);
+    this.saveRun();
   }
+  // persist the run at every wave break so it can be continued from the menu
+  saveRun() {
+    if (this.name !== 'Survival') return;
+    const g = this.game, p = g.player;
+    if (!p || p.dead) return;
+    const run = {
+      map: g.map.id, mapName: g.map.name, survivor: p.surv.id, survivorName: p.surv.name, difficulty: this.opts.difficulty || 'normal',
+      wave: this.wave, cash: this.cash, score: Math.round(this.score), kills: this.kills, headshots: this.headshots, dismembers: this.dismembers, time: this.time,
+      loadout: Loadout.capture(p), saved: Date.now(),
+    };
+    try { localStorage.setItem('hc_run', JSON.stringify(run)); } catch (e) { /* storage blocked */ }
+  }
+  static loadRun() { try { return JSON.parse(localStorage.getItem('hc_run') || 'null'); } catch (e) { return null; } }
+  static clearRun() { try { localStorage.removeItem('hc_run'); } catch (e) { /* ignore */ } }
   onKill(z, info) {
     if (this.over) return;
     this.kills++;
@@ -166,6 +190,7 @@ class SurvivalMode {
   onPlayerDeath() {
     if (this.over) return;
     this.over = true;
+    SurvivalMode.clearRun();
     const key = 'hc_best_' + this.game.map.id;
     let best = 0; try { best = +localStorage.getItem(key) || 0; } catch (e) { /* ignore */ }
     const record = Math.round(this.score) > best;
@@ -179,7 +204,7 @@ class SurvivalMode {
     return {
       left: [['SCORE', Math.round(this.score)], ['CASH', '$' + this.cash]],
       center: this.state === 'break' ? `WAVE ${this.wave + 1} IN ${Math.ceil(this.breakT)}s` : `WAVE ${this.wave}  ·  ${this.game.zombies.length + this.queue.length} INFECTED`,
-      centerSub: this.state === 'break' ? `[${keyLabel(Settings.data.bindings.shop[0])}] shop   [${keyLabel(Settings.data.bindings.nextWave[0])}] start now` : '',
+      centerSub: this.state === 'break' ? `[${Input.label('shop')}] shop   [${Input.label('nextWave')}] start now` : '',
       combo: this.combo >= 3 ? 'x' + this.combo : '',
     };
   }
@@ -226,7 +251,7 @@ class SandboxMode {
     }
     for (let i = 0; i < (o.startCount || 0); i++) this.spawnRandom();
     Sfx.loop(g.map.amb || 'amb_drone', 0.5);
-    g.hud.banner('SANDBOX', `${keyLabel(Settings.data.bindings.sandbox[0])}: tools panel  ·  spawn, remove, slow-mo, god mode`);
+    g.hud.banner('SANDBOX', `${Input.label('sandbox')}: tools panel  ·  spawn, remove, slow-mo, god mode`);
   }
   types() { return this.opts.types && this.opts.types.length ? this.opts.types : Object.keys(ZTYPES); }
   spawnRandom() {
@@ -254,7 +279,7 @@ class SandboxMode {
     const p = this.game.player;
     const flags = [];
     if (p && p.god) flags.push('GOD'); if (p && p.infAmmo) flags.push('∞ AMMO'); if (this.game.timeScale < 1) flags.push('SLOW-MO'); if (this.game.aiFrozen) flags.push('AI FROZEN'); if (this.auto) flags.push('AUTO-SPAWN');
-    return { left: [['KILLS', this.kills], ['INFECTED', this.game.zombies.length]], center: 'SANDBOX', centerSub: flags.join('  ·  ') + `   [${keyLabel(Settings.data.bindings.sandbox[0])}] tools` };
+    return { left: [['KILLS', this.kills], ['INFECTED', this.game.zombies.length]], center: 'SANDBOX', centerSub: flags.join('  ·  ') + `   [${Input.label('sandbox')}] tools` };
   }
   // tool application (from sandbox panel)
   applyTool(tool, wx, wy) {

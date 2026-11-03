@@ -15,6 +15,7 @@
   add(MB.block(800, ROOF, 395, 30), MB.block(1240, ROOF, 2660, 30), MB.plat(1195, ROOF, 45, 'metal', 8));
   add(MB.block(800, F2, 1490, 30), MB.block(2350, F2, 350, 30), MB.block(2950, F2, 950, 30));
   add(MB.plat(2700, F2, 250, 'grate', 10)); // stairwell landing / catwalk
+  add(MB.plat(2290, F2, 60, 'wood', 6));     // sagging planks over the collapsed floor (drop-through)
   // exterior walls: window + sill on floor 2, door on ground floor
   for (const wx of [800, 3870]) add(MB.block(wx, 650, 30, 90, 'brick'), MB.block(wx, 810, 30, 50, 'brick'), MB.block(wx, 890, 30, 78, 'brick'));
   // interior walls (lintels above doorways)

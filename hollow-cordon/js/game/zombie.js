@@ -77,6 +77,7 @@ function zArmor(z, bone, dmg, o, hx, hy, dx, dy) {
 OUTFITS.riot = () => ({ shirtType: 'uniform', shirt: '#1a1e26', sleeve: 'long', armor: true, pants: '#14161c', shoeType: 'boot', shoes: '#0e0e0e', helmet: 'riot', gloves: '#121212', kneepads: true });
 OUTFITS.soldierFull = () => Object.assign(OUTFITS.soldier(), { helmet: 'mil' });
 OUTFITS.brute = () => ({ shirtType: 'tank', shirt: '#5a5048', sleeve: 'none', pants: pick(['#2a2a2a', '#3a3428', '#2a3040']), shoeType: 'bare' });
+OUTFITS.hazmat = () => ({ shirtType: 'jacket', shirt: '#b8a028', sleeve: 'long', pants: '#a89020', shoeType: 'boot', shoes: '#1a1a14', hat: 'hazmat', hazmat: true, gloves: '#222222' });
 OUTFITS.bloater = () => ({ shirtType: 'tank', shirt: pick(['#8a8470', '#6a6a5a']), sleeve: 'none', pants: pick(['#3a3a40', '#4a4030']), pantsType: 'pants', shoeType: 'shoe', shoes: '#1a1410' });
 
 Object.assign(ZTYPES, {
@@ -164,6 +165,7 @@ Object.assign(ZTYPES, {
     name: 'Leaper', desc: 'Long-limbed hunter that stalks low and pounces from several metres away.',
     scale: [0.98, 1.04], build: [0.78, 0.85], limbScale: 1.15, hp: 95, headHp: 34, armHp: 40, legHp: 50, speed: [120, 150], dmg: 15, wind: 0.25, rec: 0.45,
     reach: 48, sight: 720, hear: 1.3, stagger: 120, knock: 360, bash: 16, score: 35, cash: 45, gait: 'prowl', mass: 0.9, alert: 'z_hiss', groan: 'z_hiss', jumper: true,
+    pins: true,
     lookMod(L) { L.shirtType = 'hoodie'; L.sleeve = 'long'; L.shirt = pick(['#1e2024', '#2a2420', '#22262a']); L.decay = 1; L.eyeGlow = '#e05030'; L.hairStyle = 'wild'; L.jawOpen = 3.8; },
     init(z) { z.pounceCd = rand(1, 2.5); },
     behave(z, dt, move) {
@@ -182,6 +184,40 @@ Object.assign(ZTYPES, {
     },
   },
 });
+
+ZTYPES.burner = {
+  name: 'Burner', desc: 'Varga furnace crew in scorched hazmat gear with a fuel tank on the back. Puncture the tank and it goes up — and keeps coming while it burns, leaving fire behind it.',
+  scale: [0.98, 1.06], build: [1.05, 1.15], hp: 130, headHp: 45, armHp: 50, legHp: 60, speed: [34, 48], dmg: 16, wind: 0.5, rec: 0.7,
+  reach: 50, sight: 520, hear: 1, stagger: 160, knock: 520, bash: 26, score: 30, cash: 40, gait: 'shamble', mass: 1.2, outfit: 'hazmat', groan: 'z_groan', burnRush: true,
+  init(z) { z.tankHp = 45; },
+  armor(z, bone, dmg, o, hx, hy) {
+    if (bone === 'torso' && !(z.burnT > 0)) { z.tankHp -= dmg; if (z.tankHp <= 0) z.ignite(); else { z.game.fx.sparks(hx, hy, -z.face, -0.3, 3); Sfx.play('hit_metal', { x: hx, y: hy, vol: 0.4 }); } }
+    return undefined;
+  },
+  behave(z, dt, move) {
+    if (z.burnT > 0) {
+      z.trailT = (z.trailT || 0) - dt;
+      if (z.trailT <= 0 && z.grounded) { z.trailT = 0.55; z.game.addFire(z.x, z.y, 2.6); }
+    }
+    return move;
+  },
+  onDeath(z) {
+    if (z.tankBlown) return;
+    z.tankBlown = true;
+    z.game.later(0.05, () => Combat.explode(z.game, z.x, z.y - 46, 130, 80, null, {}));
+  },
+  drawExtra(z, ctx) {
+    if (z.tankBlown) return;
+    const j = z.body.j;
+    const x = z.x + lerp(j.pelvis.x, j.neck.x, 0.6) * z.face - z.face * z.body.d.torsoT * 0.62, y = z.y + lerp(j.pelvis.y, j.neck.y, 0.6);
+    ctx.save(); ctx.translate(x, y); ctx.rotate((z.body.pose.torso + Math.PI / 2) * z.face);
+    ctx.fillStyle = z.tankHp < 20 ? '#7a2a14' : '#8a2a18'; roundRect(ctx, -6, -18, 12, 32, 5); ctx.fill();
+    ctx.strokeStyle = '#1a0a06'; ctx.lineWidth = 0.8; ctx.stroke();
+    ctx.fillStyle = 'rgba(255,255,255,0.15)'; ctx.fillRect(-4, -15, 2, 26);
+    ctx.fillStyle = '#3a3a38'; ctx.fillRect(-3, -22, 6, 5);
+    ctx.restore();
+  },
+};
 
 function weighted(list) { let r = Math.random(); for (const [k, w] of list) { r -= w; if (r <= 0) return k; } return list[0][0]; }
 
@@ -262,6 +298,51 @@ class Zombie {
     this.look = Object.assign({}, this.look, { helmet: null, hairStyle: 'buzz' });
     this.body.look = this.look; this.body.spr = BodyArt.get(this.look, this.body.d);
   }
+  ignite() {
+    if (this.burnT > 0 || this.dead) return;
+    this.burnT = 12;
+    Sfx.play('fire_whoosh', { x: this.x, y: this.y, vol: 0.9 });
+    Sfx.play('z_scream', { x: this.x, y: this.y, vol: 0.7, rate: 0.8 });
+    this.game.fx.light(this.x, this.y - 60, 260, '#ff9040', 1.4, 0.4);
+    this.aware = 1; this.hunt = true;
+  }
+  canJumpGaps() { const g = this.def.gait; return !this.crawl && (g === 'sprint' || g === 'prowl' || g === 'jog' || !!this.def.jumper); }
+  pinPlayer(p) {
+    p.pinnedBy = this; p.pinBreak = 0;
+    this.setState('pin', 4.5); this.pinTick = 0.3;
+    this.face = Math.sign(p.x - this.x) || this.face;
+    p.hurt(this.def.dmg * this.game.diff.dmgMul, this.face, this, false, 0);
+    Sfx.play('z_scream', { x: this.x, y: this.y, vol: 0.9, rate: 1.15 });
+    this.game.shake(8);
+  }
+  releasePin(thrown) {
+    const p = this.game.player;
+    if (p && p.pinnedBy === this) p.pinnedBy = null;
+    if (thrown) {
+      this.setState('down', 1.4); this.vx = -this.face * 340; this.vy = -220; this.grounded = false; this.hp -= 18; this.body.tint = 1;
+      Sfx.play('melee_blunt', { x: this.x, y: this.y - 60, vol: 0.8 }); this.game.shake(5);
+      if (this.hp <= 0) this.die({ cause: 'body', dx: -this.face, dy: -0.3, force: 200 });
+    } else { this.setState('chase'); this.cool = 1; this.vx = -this.face * 160; }
+  }
+  updatePin(dt) {
+    const g = this.game, p = g.player, d = this.body.d;
+    if (!p || p.dead || p.pinnedBy !== this || this.stateT <= 0) { this.releasePin(false); return; }
+    this.x = p.x - this.face * 16; this.y = p.y; this.vx = 0; this.vy = 0;
+    this.pinTick -= dt;
+    if (this.pinTick <= 0) {
+      this.pinTick = 0.45;
+      p.hurt(5 * g.diff.dmgMul, this.face, this);
+      Sfx.play('flesh', { x: p.x, y: p.y - 60, vol: 0.6 });
+      if (Settings.goreMul() > 0) g.fx.blood(p.x, p.y - 60, -this.face, -0.4, 4, 0.6);
+    }
+    const t = g.time * 14;
+    const target = Pose.walk(d, this.phase, { amp: 0.05, lean: 0.7, crouch: 1 });
+    Pose.crouchLegs(target, d, 0.8);
+    target.uaF = 0.1 + Math.sin(t) * 0.7; target.faF = target.uaF + 0.3; target.uaB = 0.2 + Math.sin(t + 2) * 0.7; target.faB = target.uaB + 0.3; target.head = -0.2;
+    Pose.blend(this.body.pose, target, Math.min(1, dt * 18));
+    this.body.fk(true);
+    this.updateBBox();
+  }
   updateHeight() { this.h = this.crawl || this.state === 'down' ? 40 * this.s : this.state === 'vault' ? 70 * this.s : this.standH; }
   armFactor() {
     let k = 1;
@@ -320,7 +401,7 @@ class Zombie {
     // continuous floor (gaps wider than ~2 columns mean a drop)
     let miss = 0;
     for (let x = x0; dir > 0 ? x <= x1 : x >= x1; x += dir * 16) {
-      if (w.floorAt(x, y)) miss = 0; else if (++miss > 2) return false;
+      if (w.floorAt(x, y)) miss = 0; else if (++miss > (this.canJumpGaps() ? 9 : 2)) return false;
     }
     return true;
   }
@@ -374,8 +455,10 @@ class Zombie {
       else return endX;
     }
     const dy = ty - this.y;
-    if (Math.abs(dy) < 80 && this.levelClear(this.x, tx, this.y)) return tx;
-    if (dy > 40 && this.ground && this.ground.isProp) return tx; // just step off the vehicle/crate
+    if (Math.abs(dy) < 80 && this.levelClear(this.x, tx, this.y)) { this.plan = null; return tx; }
+    // up on a vehicle/crate and the target is on the floor it stands on: just step off toward it
+    const gp = this.ground;
+    if (dy > 40 && gp && gp.isProp && Math.abs(ty - (gp.y + gp.h)) < 80 && this.levelClear(this.x, tx, gp.y + gp.h)) { this.plan = null; return tx; }
     // re-plan a few times a second
     if (!this.plan || this.game.time - this.planT > 0.6) { this.plan = this.planRoute(tx, ty); this.planT = this.game.time; }
     const e = this.plan;
@@ -384,7 +467,9 @@ class Zombie {
     if (e.L.kind === 'ladder' && Math.abs(this.x - fromX) < 10 && this.state !== 'climb') {
       this.ladder = e.L; this.climbDir = e.up ? -1 : 1; this.x = fromX; this.plan = null; this.setState('climb');
     }
-    if (e.L.kind === 'stairs' && Math.abs(this.x - fromX) < 30) { this.navLink = { L: e.L, up: e.up, t0: this.game.time }; this.plan = null; return e.ox; }
+    // already standing part-way along the stair/ramp the plan wants? continue from here
+    const L = e.L, onSpan = L.kind === 'stairs' && this.ground && this.ground.stair && this.x > Math.min(L.bx, L.tx) - 10 && this.x < Math.max(L.bx, L.tx) + 10 && this.y <= L.bottom + 2 && this.y >= L.top - 2;
+    if (L.kind === 'stairs' && (Math.abs(this.x - fromX) < 30 || onSpan)) { this.navLink = { L, up: e.up, t0: this.game.time }; this.plan = null; return e.ox; }
     return fromX;
   }
 
@@ -416,6 +501,7 @@ class Zombie {
       case 'getup': if (this.stateT <= 0) this.setState('chase'); this.vx = 0; break;
       case 'stagger': this.vx *= 0.85; if (this.stateT <= 0) this.setState('chase'); break;
       case 'vault': this.updateVault(dt); return;
+      case 'pin': this.updatePin(dt); return;
       case 'scream': {
         this.vx *= 0.85;
         if (p && !p.dead) this.face = Math.sign(p.x - this.x) || this.face;
@@ -426,6 +512,7 @@ class Zombie {
       case 'pounce': {
         if (p && !p.dead && !this.pounceHit && Math.abs(p.x - this.x) < 40 && p.y > this.y - this.h - 10 && p.y - p.h < this.y + 10) {
           this.pounceHit = true; this.vx *= 0.2;
+          if (def.pins && !p.pinnedBy && !p.onLadder && !p.vaulting) { this.pinPlayer(p); break; }
           p.hurt(def.dmg * 1.6 * g.diff.dmgMul, this.face, this, false, 380);
           Sfx.play('flesh', { x: p.x, y: p.y - 60 }); g.shake(8);
         }
@@ -466,7 +553,7 @@ class Zombie {
       }
     }
     // locomotion
-    let spd = this.speed * spdMul * (this.chargeT > 0 ? 4.5 : 1);
+    let spd = this.speed * spdMul * (this.chargeT > 0 ? 4.5 : 1) * (def.burnRush && this.burnT > 0 ? 1.9 : 1);
     if (this.state === 'pounce') move = 0;
     if (this.crawl) spd = Math.min(spd, this.def.gait === 'crawl' ? spd : 60);
     else {
@@ -479,13 +566,19 @@ class Zombie {
       this.vx = approach(this.vx, target, (this.def.gait === 'sprint' ? 900 : 500) * dt);
     }
     // stairs & dropping through one-way floors toward the target
-    this.useStairs = this.aware > 0.3 && (this.navLink ? this.navLink.up : this.ty < this.y - 60);
+    this.useStairs = this.aware > 0.3 && (this.navLink ? this.navLink.up : !this.plan && this.ty < this.y - 60);
     this.dropT = (this.dropT || 0) - dt;
     if (this.aware > 0.3 && this.grounded && this.ground && this.ground.oneway) {
       if (this.navLink && !this.navLink.up && !this.ground.stair) this.dropT = 0.3;
       else if (this.ty > this.y + 80 && !this.navLink && !this.plan) this.dropT = 0.3;
     }
     this.drop = this.dropT > 0;
+    if (move !== 0 && this.grounded && !(this.lunging > 0) && this.state === 'chase' && this.aware > 0.3 && this.canJumpGaps() && !g.aiFrozen && this.ty <= this.y + 50 && !(this.navLink && !this.navLink.up)) {
+      const w = g.world, ax = this.x + move * (this.hw + 6);
+      if (!w.floorAt(ax, this.y)) {
+        for (let dd = 16; dd <= 150; dd += 16) if (w.floorAt(ax + move * dd, this.y)) { this.vy = -420 - dd * 1.3; this.vx = move * Math.max(this.speed * spdMul, 240); this.grounded = false; this.lunging = 0.6; break; }
+      }
+    }
     Phys.move(this, dt, g, false);
     if (this.fellOut) { this.dead = true; this.removed = true; return; }
     if (this.justLanded && this.landV > 500) Sfx.play('land', { x: this.x, y: this.y, vol: 0.4 });
@@ -564,6 +657,15 @@ class Zombie {
         this.stuckT = 0;
         return;
       }
+    }
+    // up on furniture under a lintel / low ceiling: climb down ahead, or wreck what we stand on
+    const gp = this.ground;
+    if (gp && gp.isProp && !b.isProp && this.grounded) {
+      const fy = gp.y + gp.h, fx = this.x + dir * (this.hw + 8);
+      if (fy > this.y + 10 && Phys.free(g, fx, fy - 0.5, this.hw, this.standH * 0.75)) {
+        this.vault = { x0: this.x, y0: this.y, x1: fx, y1: fy, t: 0, dur: 0.5 }; this.setState('vault'); this.stuckT = 0; return;
+      }
+      if (gp.hp !== undefined && gp.hp < 1e8 && !(gp.def && gp.def.explosive) && this.stuckT > 0.5) { this.setState('bash'); this.atkT = 0; this.atkTarget = gp; this.atkHit = false; return; }
     }
     this.stuckT += 1 / 60;
     if (b.isProp && b.def && b.def.movable && this.stuckT < 1.2) { b.push(dir * 40); return; }
@@ -714,7 +816,7 @@ class Zombie {
     if (this.state === 'scream') { const k = Math.min(1, (1.7 - this.stateT) * 3); target.torso = -Math.PI / 2 - 0.35 * k; target.head = -Math.PI / 2 - 0.9 * k; target.uaF = -0.9 * k + 0.6; target.faF = -1.4 * k + 0.5; target.uaB = -0.6 * k + 0.8; target.faB = -1.2 * k + 0.6; }
     if (this.state === 'stagger') { target.torso = -Math.PI / 2 - 0.35; target.head = -Math.PI / 2 - 0.5; target.uaF = 1.8; target.faF = 2.2; target.uaB = -0.4; target.faB = 0.2; }
     if (this.state === 'getup') { const k = 1 - Math.max(0, this.stateT) / 0.8; Pose.blend(this.body.pose, target, k * k); this.body.fk(true); this.updateBBox(); return; }
-    if (!this.grounded && !this.lunging && this.state !== 'pounce') { target.thF = 0.9; target.shF = 1.9; target.thB = 1.5; target.shB = 2.2; }
+    if (!this.grounded && !(this.lunging > 0) && this.state !== 'pounce') { target.thF = 0.9; target.shF = 1.9; target.thB = 1.5; target.shB = 2.2; }
     Pose.blend(this.body.pose, target, Math.min(1, dt * (this.state === 'attack' ? 22 : 14)));
     this.body.fk(true);
     this.updateBBox();
@@ -812,6 +914,7 @@ class Zombie {
     const g = this.game;
     this.aware = 1;
     if (opts.fire) this.burnT = 4;
+    if (this.type === 'burner' && !opts.bile) this.ignite();
     if (opts.bile) { this.hp -= dmg; this.body.tint = 1; if (this.hp <= 0) this.die({ cause: 'body', dx, dy, force: force * 0.3, hx: this.x, hy: this.y - 50 }); return; }
     const total = dmg;
     if (Settings.data.dismemberment && Settings.goreMul() > 0 && k > 0.72 && total > this.hp * 1.6) {

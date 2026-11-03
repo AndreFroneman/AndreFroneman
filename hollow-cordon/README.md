@@ -6,9 +6,10 @@ Hollow Cordon is an original 2D side-view zombie survival shooter. It's built fo
 
 - **7 maps**, each with its own lighting, weather, layout and story notes
 - **24 weapons**: melee, pistols and revolvers, SMGs, pump/double/semi/auto shotguns, assault, battle and sniper rifles, and machine guns
-- **9 infected types** with distinct looks, movement, health and behaviour
+- **10 infected types** with distinct looks, movement, health and behaviour
 - **Location-based damage and heavy gore**: dismemberment, head bursts, gutting, intestines, gibs, persistent blood, and ragdoll corpses you can keep shooting
-- **3 modes**: Survival, Sandbox, and a full visual **Map Creator**
+- **4 modes**: a seven-chapter story **Campaign**, endless **Survival** (with save & continue), **Sandbox**, and a full visual **Map Creator**
+- **Keyboard & mouse or gamepad**: remappable keys, plus a standard controller layout with twin-stick aiming and full menu navigation
 
 All art and audio are generated procedurally at runtime, so the game ships no image or sound files.
 
@@ -71,21 +72,64 @@ All actions can be remapped in **Settings → Controls** (keyboard keys or mouse
 | Sandbox tools panel | **Tab** |
 | Pause | **Esc** |
 
+### Gamepad
+Any standard-mapping controller (Xbox, PlayStation, most generic pads) works in Chrome, Edge and Firefox. Connect it and press a button. Prompts switch to pad glyphs while it's in use, and moving the mouse switches back. The layout is fixed, and it's also listed on the Controls screen.
+
+| Action | Pad |
+|---|---|
+| Move · climb ladders / stairs · crouch | **Left stick** |
+| Aim (with gentle aim assist) | **Right stick** |
+| Fire / attack · steady aim | **RT** · **LT** |
+| Jump (stick ↓ + A drops through floors) | **A** |
+| Quick melee · break free when pinned | **B** |
+| Reload · interact (hold to board up / work machinery) | **X** · **Y** |
+| Previous / next weapon · last weapon | **LB / RB** · **R3** |
+| Sprint | **L3** |
+| Flashlight · start next wave / move out | **D-pad ↑** · **D-pad ↓** |
+| Medkit · grenade | **D-pad ←** · **D-pad →** |
+| Shop / sandbox tools · pause | **View** · **Menu** |
+| Menus | **D-pad / left stick** to move, **A** select, **B** back, **←/→** adjusts sliders |
+
+Hits, explosions and heavy recoil trigger rumble where the browser supports it.
+
 ---
 
 ## Game modes
 
+### Campaign — *The Long Way Out*
+Seven chapters take one survivor across all seven locations, from a hospital ward to the gates of Checkpoint Sable:
+- Each chapter opens with a **briefing** and closes with a **debrief**, and the final chapter ends with an **epilogue**.
+- Objectives are marked in the world, and an arrow at the screen edge shows the distance when the target is off-screen.
+- Infected trickle in all the time and surge during holdouts.
+- You get a short preparation window with the supply cache before each chapter.
+- **Weapons, ammo, supplies and cash carry over** between chapters. If you die, you retry the chapter with the gear you brought into it.
+- Progress is saved automatically. **Continue** resumes the next chapter, and finished chapters can be replayed from the chapter list.
+
+| # | Chapter | Location | Objectives |
+|---|---|---|---|
+| 1 | Night Shift | St. Halloran Memorial | Recover three antiviral cases across both floors, then escape through the ambulance bay |
+| 2 | Kessler Avenue | Kessler Avenue | Reach the pharmacy, hold it through two waves, climb to the apartment roof |
+| 3 | Precinct 9 | Precinct 9 | Reach the armory, restart the motor-pool generator, hold out while the radio warms up, check the radio upstairs |
+| 4 | The Water | Varga Steelworks | Get up to the control room, take the water test results, kill the brute breaking into the yard, escape |
+| 5 | Line 4 | Line 4 Tunnels | Restart the corridor generator, survive while the flood doors cycle, reach the east bore |
+| 6 | Hollins Farm | Hollins Farm | Find three fuel cans for the truck, survive until dawn |
+| 7 | Hollow Cordon | Checkpoint Sable | Reach the command post, transmit the Varga files, hold the line (a brute breaks through), reach the landing zone |
+
+The objective types are collect, reach, hold-to-work (hold **E** / **Y** at a machine), timed survival with a surge, wave defence, and boss kills.
+
 ### Survival
 Survive endless, escalating waves. Kills, headshots and dismemberments earn cash and score. Between waves you can open the **Supply Cache** shop for weapons, ammo, armour, medkits, planks and grenades. Infected drop ammo, cash, medkits and planks. Best scores are saved per map.
+
+**Save & continue:** the run is saved at every wave break, including wave, cash, score, stats and your full loadout. **Survival → Continue** picks it up from that break on the same map, survivor and difficulty. Dying ends the run and clears the save.
 
 Difficulty rises through **enemy mix and behaviour**, not just numbers:
 - Crawlers join from wave 2 and runners from wave 3.
 - Riot officers arrive from wave 4.
-- Bloaters, and a brute every third wave, arrive from waves 5–6.
+- Bloaters, burners, and a brute every third wave, arrive from waves 5–6.
 - Shriekers that buff and summon arrive from wave 6.
 - Leapers come from wave 7 and fallen soldiers from wave 8.
 
-From wave 4, runner packs appear. From wave 5, infected attack from both flanks. Health and speed keep scaling after that. Each map biases the mix: Precinct 9 favours riot officers, Checkpoint Sable favours soldiers, and the tunnels favour crawlers.
+From wave 4, runner packs appear. From wave 5, infected attack from both flanks. Health and speed keep scaling after that. Each map biases the mix: Precinct 9 favours riot officers, Checkpoint Sable favours soldiers, the tunnels favour crawlers, and the steelworks favours bloaters and burners.
 
 ### Sandbox
 Choose the map, survivor, loadout (any of the 24 weapons), allowed infected types, auto-spawn rate, max alive, starting count, difficulty, infinite ammo, god mode, and whether the infected always know where you are. Press **Tab** in game for live tools:
@@ -165,7 +209,7 @@ Plus **frag grenades** (G).
 
 **Penetration:** each bullet carries penetration power. Bodies, wood (doors, crates, wooden walls, barricades), thin metal and plaster each consume some of it. Glass shatters; concrete, brick, rock and vehicles stop rounds. Rifles punch through wooden farmhouse walls and through lines of infected, while pistol rounds stop in the first body.
 
-### Infected (9)
+### Infected (10)
 | Type | Appearance & behaviour |
 |---|---|
 | **Walker** | Patients, staff, civilians, workers. Slow, reaching, relentless. Bashes doors, climbs through windows. |
@@ -176,7 +220,8 @@ Plus **frag grenades** (G).
 | **Brute** | Huge and tumour-swollen. Charges and knocks you flying, smashes barricades in a few blows, ignores small-arms stagger. |
 | **Bloater** | Pustule-covered. Bursts into caustic bile when killed, which hurts you and nearby infected. |
 | **Shrieker** | Emaciated. Keeps its distance, then screams: alerts and enrages nearby infected (speed and damage buff) and summons more. |
-| **Leaper** | Long-limbed and stalks low. Pounces from several metres and leaps high obstacles. |
+| **Leaper** | Long-limbed and stalks low. Pounces from several metres and **pins you to the ground**, mauling until you break free: mash melee, jump, fire or interact (**B** on a pad). Leaps high obstacles and gaps. |
+| **Burner** | Varga furnace crew in scorched hazmat gear with a fuel tank on its back. Torso hits puncture the tank, and the burner then rushes you at almost double speed, trailing fire, until it burns down. The tank always explodes when it dies, so put it down at range; aiming for the head or legs avoids lighting it first. |
 
 **Location-based damage:** heads, torsos, upper and lower arms, thighs and shins all have their own hitboxes and damage multipliers.
 - **Headshots:** headshots deal heavy damage. Shotguns at close range, snipers, sledgehammers and overkill **burst the head**, scattering brain, skull, eyes and teeth and leaving a spurting neck. Axe kills decapitate.
@@ -190,6 +235,8 @@ Plus **frag grenades** (G).
 - **Senses:** sight depends on light, flashlight, crouching and facing; hearing responds to gunshots, sprinting, doors and glass.
 - **Obstacles:** infected climb onto or vault over cars, crates and sandbags. They bash doors, windows, barricades and furniture, and climb through broken windows.
 - **Navigation:** a route planner over stairs, ladders and fire escapes checks walls and floor continuity, so infected find their way between floors, catwalks, lofts and roofs.
+- **Gap jumping:** runners, leapers and soldiers jump gaps of up to about 150 px on the same level. Slower types walk around, or drop through and re-route.
+- **Furniture:** infected climb off furniture they can't get past, or wreck it. Pushing a cabinet against a door slows them down but won't trap them.
 
 ### Maps (7)
 | Map | Setting |
@@ -230,15 +277,18 @@ If a machine struggles in very heavy fights, lower the particle and corpse limit
 A headless browser smoke test boots the game and:
 - plays Survival on every map, firing weapons at spawned infected;
 - runs Sandbox with explosions;
-- exercises the UI flows: setup screens, shop purchase, key remapping, death → game over → restart, and editor → playtest → back to editor.
+- exercises the UI flows: setup screens, shop purchase, key remapping, death → game over → restart, and editor → playtest → back to editor;
+- plays the **whole campaign**: new campaign → briefing → every objective of all seven chapters (collect, reach, hold, survive, waves, boss) → chapter complete → ending, and checks that the save and loadout carry over; it also covers death → Retry Chapter;
+- saves a Survival run at a wave break, then **continues** it from the menu;
+- drives the menus and gameplay with a **virtual gamepad**: focus navigation, A/B, stick movement and aim, RT fire, LB/RB switch, A jump, Menu pause.
 
-It fails on any JavaScript error.
+It fails on any JavaScript error. The last argument picks a scenario (`all`, `survival`, `sandbox`, `ui`, `campaign` or `gamepad`).
 
 ```bash
 cd hollow-cordon
 python3 -m http.server 8000 &
 npm install --no-save playwright   # if Playwright isn't already available
-node tools/smoke-test.mjs http://localhost:8000/ /tmp/shots
+node tools/smoke-test.mjs http://localhost:8000/ /tmp/shots all
 ```
 
 ---
@@ -251,7 +301,8 @@ hollow-cordon/
   js/render/    textures, character sprite baker, decor painter, lighting, scene (sky/parallax/fog/weather/post)
   js/game/      body (skeleton/IK/hitboxes), weapons, world (grid/raycasts/decals), fx (particles/gibs/ropes),
                 ragdoll & gore, props (doors/windows/barricades/physics props), combat (ballistics/explosions/melee),
-                actor (character controller & poses), zombie (types/AI/damage), player, game, modes
+                actor (character controller & poses), zombie (types/AI/damage), player, game, modes,
+                campaign (chapters, objectives, loadout & save)
   js/maps/      map library + builder helpers, 7 built-in maps, custom map storage
   js/ui/        HUD, menus & overlays
   js/editor/    map creator
@@ -262,17 +313,22 @@ hollow-cordon/
 
 ## Finished vs. planned
 
-**Finished:** everything described above is implemented and playable. That covers the 3 modes, 7 maps, 24 weapons plus grenades, 9 infected types, the gore system, the map creator, settings, remappable controls, menus, HUD, and the pause and restart flow.
+**Finished:** everything described above is implemented and playable:
+- 4 modes, including the seven-chapter campaign with its briefings, objectives and ending;
+- 7 maps, 24 weapons plus grenades, and 10 infected types, including the leaper's pin and the Burner;
+- the gore system, the map creator, and settings;
+- Survival save & continue;
+- remappable keyboard and mouse controls, plus full gamepad support;
+- menus, HUD, and the pause and restart flow.
 
 **Known limitations:**
-- Keyboard and mouse only: there is no gamepad or touch support, and the game targets desktop browsers.
+- The gamepad layout is fixed; only keyboard and mouse bindings can be remapped. The map creator and the sandbox tool panel need a mouse. There is no touch support, and the game targets desktop browsers.
 - Physics props are axis-aligned boxes. Rotating a prop in the editor is visual only, and solid blocks rotate in 90° steps by swapping width and height.
-- Infected route between floors over stairs, ladders and fire escapes. A custom map that can only be crossed by jumping over a gap may leave them stuck; add a ladder or stairs.
-- The leaper's pounce deals a heavy hit and knockback but does not pin the player.
-- There are no saved Survival runs; only best scores persist.
+- Slow infected (walkers, burners, brutes) don't jump gaps. On a custom map where two areas are linked only by a gap, they drop through and re-route if they can; add stairs, a ladder or a plank if there's no other way round.
+- The campaign has one save slot, and Survival keeps one saved run.
 - All audio is synthesised. It is distinctive but not photorealistic.
 
-**Ideas for future work:** gamepad support, a short story campaign with objectives linking the seven locations, co-op, and more infected variants (such as a burning or hazmat type) and maps.
+**Ideas for future work:** co-op, more campaign chapters and maps, and a remappable gamepad layout.
 
 ---
 

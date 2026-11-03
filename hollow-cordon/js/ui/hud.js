@@ -64,9 +64,9 @@ class HUD {
       bar(by + 18 * s, p.stamina / 100, '#8a7a3a', 6 * s);
       let ix = bx;
       const item = (label, n, col) => { txt(label + ' ' + n, ix, by + 44 * s, n > 0 ? col : '#5a564a', 12); ix += 74 * s; };
-      item('MED[' + keyLabel(Settings.data.bindings.medkit[0]) + ']', p.medkits, '#d89090');
+      item('MED[' + Input.label('medkit') + ']', p.medkits, '#d89090');
       item('PLANK', p.planksFree ? '∞' : p.planks, '#c8a070');
-      item('GREN[' + keyLabel(Settings.data.bindings.grenade[0]) + ']', p.grenades, '#b8c090');
+      item('GREN[' + Input.label('grenade') + ']', p.grenades, '#b8c090');
       // ------------------------------------------------- weapon
       const gun = p.gun;
       if (gun) {
@@ -113,11 +113,20 @@ class HUD {
       // ------------------------------------------------- prompt
       if (p.interactTarget && !p.dead) {
         const [sx, sy] = g.worldToScreen(p.x, p.y - p.h - 26);
-        const k = keyLabel(Settings.data.bindings.interact[0]);
+        const k = Input.label('interact');
         ctx.font = F(12); const tw = ctx.measureText(`[${k}] ${p.interactTarget.label}`).width;
         ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(sx - tw / 2 - 8 * s, sy - 15 * s, tw + 16 * s, 21 * s);
         txt(`[${k}] ${p.interactTarget.label}`, sx, sy, '#efe0b8', 12, 'center');
       }
+      // ------------------------------------------------- pinned
+      if (p.pinnedBy && !p.dead) {
+        const k = Input.label('melee');
+        const y = ch * 0.62;
+        txt('PINNED!  MASH [' + k + '] TO BREAK FREE', cw / 2, y, Math.sin(g.time * 14) > 0 ? '#ff7050' : '#efe4c8', 20, 'center', '900');
+        ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(cw / 2 - 120 * s, y + 10 * s, 240 * s, 8 * s);
+        ctx.fillStyle = '#e8a050'; ctx.fillRect(cw / 2 - 118 * s, y + 12 * s, 236 * s * clamp(p.pinBreak || 0, 0, 1), 4 * s);
+      }
+      if (g.mode.drawScreen) g.mode.drawScreen(ctx, s);
       // ------------------------------------------------- crosshair
       if (!p.dead && !UI.anyOverlay()) this.crosshair(ctx, p, s);
     }
@@ -165,7 +174,7 @@ class HUD {
       ctx.beginPath(); ctx.arc(mx, my, gap + L + 6 * s, -Math.PI / 2, -Math.PI / 2 + TAU * clamp(fr, 0, 1)); ctx.stroke();
     } else if (g && g.def.cat !== 'melee' && g.mag === 0) {
       ctx.font = `bold ${Math.round(11 * s)}px "Arial Narrow", Arial, sans-serif`; ctx.textAlign = 'center';
-      ctx.fillStyle = '#e0502a'; ctx.fillText('RELOAD [' + keyLabel(Settings.data.bindings.reload[0]) + ']', mx, my + gap + L + 18 * s);
+      ctx.fillStyle = '#e0502a'; ctx.fillText('RELOAD [' + Input.label('reload') + ']', mx, my + gap + L + 18 * s);
     }
     ctx.restore();
   }

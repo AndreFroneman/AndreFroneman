@@ -51,6 +51,7 @@ const App = {
   start(kind, opts, mapOverride) {
     this.destroyGame();
     this.lastMode = kind; this.lastOpts = opts; this.lastMapOverride = mapOverride || null;
+    if (kind === 'campaign') opts.map = CAMPAIGN[opts.chapter | 0].map;
     const map = mapOverride || MapLib.get(opts.map) || MapLib.get('hospital');
     const err = Custom.validate(map);
     if (err) { alert(err); this.toMenu(); return; }
@@ -58,14 +59,19 @@ const App = {
     UI.clear();
     this.game = new Game(deepClone(map), {
       survivor, difficulty: opts.difficulty, noPreplaced: kind === 'survival',
-      modeFactory: (g) => (kind === 'survival' ? new SurvivalMode(g, opts) : new SandboxMode(g, opts)),
+      modeFactory: (g) => (kind === 'survival' ? new SurvivalMode(g, opts) : kind === 'campaign' ? new CampaignMode(g, opts) : new SandboxMode(g, opts)),
     });
     this.state = 'game';
     Input.gameFocus = true;
     Input.clear();
     this.canvas.className = 'ingame';
   },
-  restart() { if (this.lastMode) this.start(this.lastMode, this.lastOpts, this.lastMapOverride); },
+  restart() {
+    if (!this.lastMode) return;
+    const o = Object.assign({}, this.lastOpts);
+    delete o.resume; // a restart begins a fresh run
+    this.start(this.lastMode, o, this.lastMapOverride);
+  },
   openEditor() {
     this.destroyGame();
     UI.clear();
@@ -96,6 +102,12 @@ const App = {
     const dt = Math.min(0.033, Math.max(0.0001, (t - (this.last || t)) / 1000));
     this.last = t;
     try {
+      Input.pollPad(dt);
+      if (Input.pad.using) {
+        const overlay = UI.anyOverlay();
+        if (this.state === 'game' && this.game && !overlay) Input.padAim(this.game, dt);
+        if ((this.state === 'menu' || this.state === 'game') && (overlay || this.state === 'menu')) UI.padNav();
+      }
       if (this.state === 'game' && this.game) {
         if (Input.keyPressed('Escape')) UI.escape();
         if (UI.note && Input.actPressed('interact')) UI.closeNote();

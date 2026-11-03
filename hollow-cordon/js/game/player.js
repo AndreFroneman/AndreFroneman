@@ -103,6 +103,20 @@ class Player {
     const ui = input;
     let mv = (ui.right ? 1 : 0) - (ui.left ? 1 : 0);
     if (this.vaulting) { this.updateVault(dt); return; }
+    // pinned by a leaper: struggle free
+    if (this.pinnedBy) {
+      const z = this.pinnedBy;
+      if (z.dead || z.state !== 'pin') { this.pinnedBy = null; }
+      else {
+        this.vx = 0; this.onLadder = null;
+        if (ui.melee || ui.interact || ui.jumpPressed || ui.firePressed) { this.pinBreak = (this.pinBreak || 0) + 0.2; g.shake(2); Sfx.play('swing', { vol: 0.35, rate: 1.3 }); }
+        if (this.pinBreak >= 1) { this.pinBreak = 0; z.releasePin(true); this.pinnedBy = null; }
+        Phys.move(this, dt, g, false);
+        this.animate(dt, 0, true, false, Object.assign({}, ui, { aim: false }));
+        this.updateBBox();
+        return;
+      }
+    }
     // ladders
     const lad = Phys.ladderAt(g, this.x, this.y, this.h);
     if (!this.onLadder && lad && (ui.up || (ui.down && this.y < lad.y + lad.h - 4)) && !ui.jumpPressed) {
@@ -390,6 +404,8 @@ class Player {
       const d = dist(n.x, n.y, px, py);
       if (d < 70 && d < bd + 30) { best = { obj: n, label: 'Read: ' + n.title, note: true }; bd = d; }
     }
+    // objective items / hold points from the game mode take priority
+    if (g.mode.interactables) for (const it of g.mode.interactables(px, py)) { best = it; bd = -1; }
     this.interactTarget = best;
     // hold-to-board
     if (best && Input.act('interact')) {
@@ -399,6 +415,7 @@ class Player {
   }
   interact(t) {
     const o = t.obj;
+    if (t.mode) { if (!t.hold) this.game.mode.interact(o); return; }
     if (t.note) { this.game.showNote(o); return; }
     if (o.isDoor) { if (!o.boards) o.toggle(this.x); return; }
     if (o.isWindow) { if (!o.solid) this.startVault(o); else this.board(o); return; }
@@ -588,7 +605,7 @@ class Player {
     const g = this.gun;
     this.body.draw(ctx, this.x, this.y, this.face, {
       weapon: (c) => {
-        if (!g || this.onLadder) return;
+        if (!g || this.onLadder || !this.handLocal) return;
         const gs = GunArt.get(g.def);
         const h = this.handLocal, a = this.gunAngLocal;
         c.save(); c.translate(h[0], h[1]); c.rotate(a);

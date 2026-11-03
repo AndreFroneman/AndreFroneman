@@ -31,8 +31,8 @@
   // ---- container command post (2400-2760)
   add(MB.wall(2400, G, 'door', { mat: 'metal', door: { metal: true } }), MB.wall(2736, G, 'door', { mat: 'metal', door: { metal: true } }), MB.block(2400, 860, 360, 30, 'corrugated'));
   add(MB.bw(2424, 890, 312, 210, 'metal'), MB.bulb(2580, 890, { color: '#e8f0d0', flicker: 0.3 }));
-  add(MB.prop('desk', 2470, G), MB.prop('cabinet', 2690, G), MB.deco('radio', 2500, G - 44), MB.deco('board', 2600, 920));
-  add(MB.pickup('armor', 2640, 1090), MB.pickup('ammo', 2560, 1090, { ammo: '5.56' }));
+  add(MB.prop('desk', 2470, G), MB.prop('cabinet', 2604, G), MB.deco('radio', 2500, G - 44), MB.deco('board', 2600, 920));
+  add(MB.pickup('armor', 2680, 1090), MB.pickup('ammo', 2560, 1090, { ammo: '5.56' }));
   add(MB.note(2620, 1050, 'Radio log — CP Sable', '0412 SABLE to CORDON: line breached at grid 4, requesting fire support.\n0413 CORDON: negative. Hold.\n0430 SABLE: half the platoon is symptomatic. Requesting medevac.\n0431 CORDON: negative. You are inside the line now. Hold.\n0500 SABLE: ...\n0600 SABLE: ...'));
 
   // ---- military camp

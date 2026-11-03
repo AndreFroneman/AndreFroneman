@@ -50,6 +50,59 @@ const UI = {
   },
   btn(label, fn, cls = '') { return h('button', { class: 'btn ' + cls, onclick: fn }, label); },
 
+  // ------------------------------------------------------------ gamepad menu navigation
+  // D-pad / left stick moves focus spatially between the controls of the
+  // top-most screen, A activates, B goes back, left/right adjusts sliders
+  // and cycles dropdowns.
+  padNav() {
+    const top = this.stack[this.stack.length - 1];
+    if (!top || Input.capture) return;
+    const items = [...top.querySelectorAll('button, .card[tabindex="0"], input, select')].filter((e) => e.offsetParent !== null && !e.disabled);
+    if (!items.length) return;
+    let cur = items.includes(document.activeElement) ? document.activeElement : null;
+    const focus = (el) => {
+      if (!el) return;
+      for (const o of this.root.querySelectorAll('.padfocus')) o.classList.remove('padfocus');
+      el.classList.add('padfocus'); el.focus({ preventScroll: true }); el.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+      Sfx.play('ui_hover', { vol: 0.5 });
+    };
+    const dir = Input.navOut;
+    const A = Input.keyPressed('Pad0'), B = Input.keyPressed('Pad1');
+    if (!cur && (dir || A)) { focus(items.find((e) => e.classList.contains('primary')) || items[0]); Input.consume('Pad0'); return; }
+    if (!cur) { if (B) this.padBack(); return; }
+    if (!cur.classList.contains('padfocus')) cur.classList.add('padfocus');
+    if (dir) {
+      const horiz = dir === 'left' || dir === 'right', s = dir === 'left' ? -1 : 1;
+      if (horiz && cur.type === 'range') { const st = +cur.step || 1; cur.value = clamp(+cur.value + s * st * Math.max(1, Math.round((cur.max - cur.min) / st / 20)), +cur.min, +cur.max); cur.dispatchEvent(new Event('input', { bubbles: true })); cur.dispatchEvent(new Event('change', { bubbles: true })); return; }
+      if (horiz && cur.tagName === 'SELECT') { cur.selectedIndex = (cur.selectedIndex + s + cur.options.length) % cur.options.length; cur.dispatchEvent(new Event('change', { bubbles: true })); return; }
+      const r = cur.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+      let best = null, bs = Infinity;
+      for (const e of items) {
+        if (e === cur) continue;
+        const q = e.getBoundingClientRect(), dx = q.left + q.width / 2 - cx, dy = q.top + q.height / 2 - cy;
+        const main = dir === 'down' ? dy : dir === 'up' ? -dy : dir === 'right' ? dx : -dx;
+        const side = dir === 'down' || dir === 'up' ? Math.abs(dx) : Math.abs(dy);
+        if (main < 6) continue;
+        const sc = main + side * 2.2;
+        if (sc < bs) { bs = sc; best = e; }
+      }
+      focus(best);
+    }
+    if (A) {
+      Input.consume('Pad0');
+      if (cur.tagName === 'SELECT') { cur.selectedIndex = (cur.selectedIndex + 1) % cur.options.length; cur.dispatchEvent(new Event('change', { bubbles: true })); }
+      else if (cur.type !== 'range') cur.click();
+    }
+    if (B) this.padBack();
+  },
+  padBack() {
+    Input.consume('Pad1');
+    if (App.state === 'game') { this.escape(); return; }
+    const top = this.stack[this.stack.length - 1];
+    const back = top && [...top.querySelectorAll('button')].find((b) => /^(BACK|DONE|CLOSE)$/.test(b.textContent.trim()));
+    if (back) back.click();
+  },
+
   // ------------------------------------------------------------ boot
   boot(onStart) {
     this.clear();
@@ -73,6 +126,7 @@ const UI = {
     const el = h('div', { class: 'screen main' },
       h('div', { class: 'logo' }, h('div', { class: 'logo-main' }, 'HOLLOW CORDON'), h('div', { class: 'logo-sub' }, 'Marrow Falls is sealed. You are inside.')),
       h('div', { class: 'menu' },
+        this.btn('CAMPAIGN', () => this.campaignMenu(), 'big'),
         this.btn('SURVIVAL', () => this.survivalSetup(), 'big'),
         this.btn('SANDBOX', () => this.sandboxSetup(), 'big'),
         this.btn('MAP CREATOR', () => App.openEditor(), 'big'),
@@ -80,7 +134,7 @@ const UI = {
         this.btn('CONTROLS', () => this.controls()),
         this.btn('ABOUT', () => this.about()),
       ),
-      h('div', { class: 'footer' }, 'v1.0 · all art & audio procedurally generated · ', h('span', { class: 'dim' }, 'Esc pauses in game')));
+      h('div', { class: 'footer' }, 'v1.1 · all art & audio procedurally generated · ', h('span', { class: 'dim' }, 'Esc pauses in game · gamepad supported')));
     this.show(el, false);
   },
   back(fn) { return this.btn('BACK', fn || (() => this.mainMenu()), 'ghost'); },
@@ -90,7 +144,7 @@ const UI = {
     const maps = MapLib.all().concat(includeCustom ? Custom.list() : []);
     for (const m of maps) {
       let best = 0; try { best = +localStorage.getItem('hc_best_' + m.id) || 0; } catch (e) { /* ignore */ }
-      const card = h('div', { class: 'card' + (m.id === selected ? ' sel' : ''), onclick: () => { onPick(m.id); wrap.querySelectorAll('.card').forEach((c) => c.classList.remove('sel')); card.classList.add('sel'); } },
+      const card = h('div', { class: 'card' + (m.id === selected ? ' sel' : ''), tabindex: 0, onclick: () => { onPick(m.id); wrap.querySelectorAll('.card').forEach((c) => c.classList.remove('sel')); card.classList.add('sel'); } },
         mapThumb(m, 220, 70), h('div', { class: 'card-t' }, m.name + (m.custom ? ' ✎' : '')), h('div', { class: 'card-s' }, m.subtitle || (m.custom ? 'Custom map' : '')),
         h('div', { class: 'card-d' }, m.desc || ''), best ? h('div', { class: 'card-b' }, 'Best: ' + best) : null);
       wrap.append(card);
@@ -100,7 +154,7 @@ const UI = {
   survivorCards(selected, onPick) {
     const wrap = h('div', { class: 'cards survivors' });
     for (const s of SURVIVORS) {
-      const card = h('div', { class: 'card' + (s.id === selected ? ' sel' : ''), onclick: () => { onPick(s.id); wrap.querySelectorAll('.card').forEach((c) => c.classList.remove('sel')); card.classList.add('sel'); } },
+      const card = h('div', { class: 'card' + (s.id === selected ? ' sel' : ''), tabindex: 0, onclick: () => { onPick(s.id); wrap.querySelectorAll('.card').forEach((c) => c.classList.remove('sel')); card.classList.add('sel'); } },
         portrait(s.look, 90, 130), h('div', { class: 'card-t' }, s.name), h('div', { class: 'card-s' }, s.role), h('div', { class: 'card-d' }, s.perk));
       wrap.append(card);
     }
@@ -117,13 +171,105 @@ const UI = {
   survivalSetup() {
     this.clear();
     const S = this.setup;
+    const run = SurvivalMode.loadRun();
+    const runOk = run && MapLib.get(run.map);
+    const cont = runOk ? h('div', { class: 'continue' },
+      h('div', {}, h('div', { class: 'card-t' }, 'Continue run'), h('div', { class: 'card-d' }, `${run.mapName} · next wave ${run.wave + 1} · $${run.cash} · score ${run.score} · ${run.survivorName} · ${(DIFFICULTY[run.difficulty] || DIFFICULTY.normal).label}`)),
+      h('div', { class: 'row' },
+        this.btn('Discard', () => { SurvivalMode.clearRun(); this.survivalSetup(); }, 'ghost'),
+        this.btn('CONTINUE', () => App.start('survival', { map: run.map, survivor: run.survivor, difficulty: run.difficulty, resume: run }), 'primary'))) : null;
     const el = this.screen('SURVIVAL',
-      h('p', { class: 'hint' }, 'Endless waves. Earn cash for kills, headshots and dismemberment; spend it between waves on weapons, ammo, armour, medkits and planks.'),
+      cont,
+      h('p', { class: 'hint' }, 'Endless waves. Earn cash for kills, headshots and dismemberment; spend it between waves on weapons, ammo, armour, medkits and planks. Your run is saved at every wave break.'),
       h('h3', {}, 'Location'), this.mapCards(S.map, (id) => { S.map = id; }),
       h('h3', {}, 'Survivor'), this.survivorCards(S.survivor, (id) => { S.survivor = id; }),
       h('h3', {}, 'Difficulty'), this.diffPicker(S.difficulty, (k) => { S.difficulty = k; }),
       h('div', { class: 'row end' }, this.back(), this.btn('START SURVIVAL', () => { this.saveSetup(); App.start('survival', { map: S.map, survivor: S.survivor, difficulty: S.difficulty }); }, 'primary')));
     this.show(el, false);
+  },
+  // ------------------------------------------------------------ campaign
+  campaignMenu() {
+    this.clear();
+    const save = CampaignSave.load();
+    const S = this.setup;
+    const go = (i) => App.start('campaign', { chapter: i, survivor: save.survivor, difficulty: save.difficulty });
+    let chapters = null;
+    if (save) {
+      chapters = h('div', { class: 'chapters' });
+      CAMPAIGN.forEach((c, i) => {
+        const open = i <= save.unlocked;
+        const done = i < save.unlocked || (c.final && save.completed);
+        chapters.append(h('div', { class: 'card chapter' + (open ? '' : ' locked'), tabindex: open ? 0 : -1, onclick: () => { if (open) go(i); } },
+          mapThumb(MapLib.get(c.map), 220, 60),
+          h('div', { class: 'card-s' }, 'Chapter ' + (i + 1) + (done ? '  ✓' : '')),
+          h('div', { class: 'card-t' }, open ? c.title : '— locked —'),
+          h('div', { class: 'card-d' }, open ? c.place : '')));
+      });
+    }
+    const startNew = () => {
+      if (save && !window.confirm('Start a new campaign? Your current campaign progress will be replaced.')) return;
+      this.saveSetup();
+      CampaignSave.fresh(S.survivor, S.difficulty);
+      App.start('campaign', { chapter: 0, survivor: S.survivor, difficulty: S.difficulty });
+    };
+    const surv = save ? SURVIVORS.find((x) => x.id === save.survivor) : null;
+    const el = this.screen('CAMPAIGN — THE LONG WAY OUT',
+      h('p', { class: 'hint' }, 'Seven chapters across Marrow Falls, from St. Halloran Hospital to the gates of Checkpoint Sable. Weapons, supplies and cash carry over between chapters. If you die, the chapter restarts with the gear you brought into it.'),
+      save ? h('div', { class: 'continue' },
+        h('div', {},
+          h('div', { class: 'card-t' }, save.completed ? 'Campaign complete — replay any chapter' : `Continue: Chapter ${save.unlocked + 1} — ${CAMPAIGN[save.unlocked].title}`),
+          h('div', { class: 'card-d' }, `${surv ? surv.name : ''} · ${(DIFFICULTY[save.difficulty] || DIFFICULTY.normal).label} · $${save.cash} · ${save.kills || 0} kills · ${fmtTime(save.time || 0)}`)),
+        save.completed ? null : this.btn('CONTINUE', () => go(save.unlocked), 'primary')) : null,
+      save ? h('h3', {}, 'Chapters') : null, chapters,
+      h('h3', {}, save ? 'New campaign — survivor' : 'Survivor'), this.survivorCards(S.survivor, (id) => { S.survivor = id; }),
+      h('h3', {}, 'Difficulty'), this.diffPicker(S.difficulty, (k) => { S.difficulty = k; }),
+      h('div', { class: 'row end' }, this.back(), this.btn(save ? 'NEW CAMPAIGN' : 'BEGIN CAMPAIGN', startNew, save ? '' : 'primary')));
+    this.show(el, false);
+  },
+  briefing(i, onBegin) {
+    const c = CAMPAIGN[i];
+    const el = h('div', { class: 'screen brief' }, h('div', { class: 'panel narrow' },
+      h('div', { class: 'card-s' }, `CHAPTER ${i + 1} OF ${CAMPAIGN.length}`),
+      h('h2', {}, c.title.toUpperCase()),
+      h('div', { class: 'sub' }, c.place),
+      ...c.brief.map((p) => h('p', {}, p)),
+      h('h3', {}, 'Objectives'),
+      h('ol', { class: 'objectives' }, ...c.stages.map((st) => h('li', {}, st.text))),
+      h('p', { class: 'hint' }, `You get a short moment to prepare: [${Input.label('shop')}] opens the supply cache, [${Input.label('nextWave')}] moves out immediately. Objective markers show on screen; [${Input.label('interact')}] picks up items and works machinery.`),
+      h('div', { class: 'row end' }, this.btn('QUIT', () => App.toMenu(), 'ghost'), this.btn('BEGIN', () => { this.pop(); Input.clear(); if (onBegin) onBegin(); }, 'primary'))));
+    this.show(el, true);
+    Sfx.play('wave_start', { vol: 0.5 });
+  },
+  chapterComplete(i, stats) {
+    const c = CAMPAIGN[i], n = CAMPAIGN[i + 1];
+    const el = this.screen('CHAPTER COMPLETE',
+      h('div', { class: 'sub' }, `Chapter ${i + 1}: ${c.title}`),
+      h('p', { class: 'debrief' }, c.debrief),
+      h('table', { class: 'stats' }, ...stats.map(([k, v]) => h('tr', {}, h('td', {}, k), h('td', {}, String(v))))),
+      h('div', { class: 'row end' },
+        this.btn('MAIN MENU', () => App.toMenu(), 'ghost'),
+        n ? this.btn(`CHAPTER ${i + 2}: ${n.title.toUpperCase()}`, () => { const s = CampaignSave.load() || {}; App.start('campaign', { chapter: i + 1, survivor: s.survivor, difficulty: s.difficulty }); }, 'primary') : null));
+    el.classList.add('gameover');
+    el.firstChild.classList.add('narrow');
+    this.show(el, true);
+  },
+  ending(save, stats) {
+    const surv = SURVIVORS.find((x) => x.id === save.survivor);
+    const row = (k, v) => h('tr', {}, h('td', {}, k), h('td', {}, String(v)));
+    const el = h('div', { class: 'screen ending' }, h('div', { class: 'panel narrow' },
+      h('div', { class: 'card-s' }, 'EPILOGUE'),
+      h('h2', {}, 'THE LINE IS OPEN'),
+      ...EPILOGUE.map((p, k) => h('p', { class: k === EPILOGUE.length - 1 ? 'last' : '' }, p)),
+      h('table', { class: 'stats' },
+        row('Survivor', surv ? surv.name : ''),
+        row('Difficulty', (DIFFICULTY[save.difficulty] || DIFFICULTY.normal).label),
+        row('Infected killed (whole campaign)', save.kills || 0),
+        row('Time inside the cordon', fmtTime(save.time || 0))),
+      h('div', { class: 'credits' }, 'HOLLOW CORDON', h('br'), 'Design, code, art and audio generated in-engine', h('br'), 'Thank you for playing.'),
+      h('div', { class: 'row end' }, this.btn('MAIN MENU', () => App.toMenu(), 'primary'))));
+    el.classList.add('gameover');
+    this.show(el, true);
+    Sfx.play('wave_clear', { vol: 0.8 });
   },
   sandboxSetup() {
     this.clear();
@@ -140,7 +286,7 @@ const UI = {
       return h('div', {}, h('div', { class: 'row' }, h('span', { class: 'lbl' }, label), this.btn('All', () => { wrap.querySelectorAll('input').forEach((i) => { i.checked = true; i.dispatchEvent(new Event('change')); }); }, 'tiny'), this.btn('None', () => { wrap.querySelectorAll('input').forEach((i) => { i.checked = false; i.dispatchEvent(new Event('change')); }); }, 'tiny')), wrap);
     };
     const el = this.screen('SANDBOX',
-      h('p', { class: 'hint' }, 'Pick a map and rules, then experiment. In game press ' + keyLabel(Settings.data.bindings.sandbox[0]) + ' for live tools: spawn/remove infected and props, explosions, slow motion, AI freeze, god mode.'),
+      h('p', { class: 'hint' }, 'Pick a map and rules, then experiment. In game press ' + Input.label('sandbox') + ' for live tools: spawn/remove infected and props, explosions, slow motion, AI freeze, god mode.'),
       h('h3', {}, 'Map'), this.mapCards(S.map, (id) => { S.map = id; }),
       h('div', { class: 'cols' },
         h('div', {}, h('h3', {}, 'Weapons'), checks(WEAPON_LIST.map((w) => [w.id, w.name]), C.weapons, 'Loadout')),
@@ -218,9 +364,18 @@ const UI = {
       }
     };
     render();
+    const padRows = [
+      ['Move / climb / crouch', 'Left stick'], ['Aim (gentle aim assist)', 'Right stick'], ['Fire / attack', 'RT'], ['Steady aim, look further', 'LT'],
+      ['Jump (↓ + A: drop through)', 'A'], ['Quick melee / break free', 'B'], ['Reload', 'X'], ['Interact / use / barricade', 'Y'],
+      ['Previous / next weapon', 'LB / RB'], ['Last weapon', 'R3'], ['Sprint', 'L3'], ['Flashlight', 'D-pad ↑'], ['Start next wave', 'D-pad ↓'],
+      ['Medkit', 'D-pad ←'], ['Grenade', 'D-pad →'], ['Shop / sandbox tools', 'View'], ['Pause', 'Menu'], ['Menus', 'D-pad / stick · A select · B back'],
+    ];
+    const pad = h('div', { class: 'binds pad' }, ...padRows.map(([a, b]) => h('div', { class: 'bind' }, h('span', {}, a), h('span', { class: 'padkey' }, b))));
     const el = this.screen('CONTROLS',
       h('p', { class: 'hint' }, 'Click a binding, then press a key or mouse button. Esc cancels. Fixed: mouse aims · mouse wheel cycles weapons · Esc pauses.'),
       rows,
+      h('h3', {}, 'Gamepad ' + (Input.pad.connected ? '— connected: ' + Input.pad.id.slice(0, 48) : '— connect any standard controller and press a button')),
+      pad,
       h('div', { class: 'row end' }, this.btn('Reset to defaults', () => { Settings.resetBindings(); render(); }, 'ghost'), this.btn('DONE', () => { this.pop(); if (onBack) onBack(); else this.mainMenu(); }, 'primary')));
     if (!onBack) this.clear();
     this.show(el, true);
@@ -259,7 +414,7 @@ const UI = {
     if (this.anyOverlay()) {
       const top = this.stack[this.stack.length - 1];
       if (top === this.pauseEl) { this.resume(); return; }
-      if (top.classList.contains('gameover')) return;
+      if (top.classList.contains('gameover') || top.classList.contains('brief')) return;
       this.pop(); if (this.pauseEl) this.pauseEl.style.display = '';
       return;
     }
@@ -277,7 +432,7 @@ const UI = {
     const el = this.screen(o.title,
       h('div', { class: 'sub' }, o.sub || ''),
       h('table', { class: 'stats' }, ...(o.stats || []).map(([k, v]) => h('tr', {}, h('td', {}, k), h('td', {}, String(v))))),
-      h('div', { class: 'row end' }, this.btn('MAIN MENU', () => App.toMenu(), 'ghost'), App.fromEditor ? this.btn('BACK TO EDITOR', () => App.backToEditor(), 'ghost') : null, this.btn('RESTART', () => App.restart(), 'primary')));
+      h('div', { class: 'row end' }, this.btn('MAIN MENU', () => App.toMenu(), 'ghost'), App.fromEditor ? this.btn('BACK TO EDITOR', () => App.backToEditor(), 'ghost') : null, this.btn(o.retryLabel || 'RESTART', () => App.restart(), 'primary')));
     el.classList.add('gameover');
     this.show(el, true);
   },
@@ -332,7 +487,7 @@ const UI = {
     const el = h('div', { class: 'screen shop' }, h('div', { class: 'panel wide' },
       h('div', { class: 'row between' }, h('h2', {}, 'SUPPLY CACHE'), cashEl),
       msg, body,
-      h('div', { class: 'row end' }, this.btn('CLOSE [' + keyLabel(Settings.data.bindings.shop[0]) + ']', () => this.closeShop(), 'primary'))));
+      h('div', { class: 'row end' }, this.btn('CLOSE [' + Input.label('shop') + ']', () => this.closeShop(), 'primary'))));
     this.shopEl = el; this.shopOpen = true;
     this.show(el, true);
   },
@@ -352,7 +507,7 @@ const UI = {
     const tog = (label, get, set) => { const b = h('button', { class: 'btn tiny' + (get() ? ' on' : '') }, label); b.addEventListener('click', () => { set(!get()); b.classList.toggle('on', get()); }); return b; };
     const p = g.player;
     const el = h('div', { class: 'sbpanel' },
-      h('div', { class: 'sbh' }, 'SANDBOX TOOLS', h('span', { class: 'dim' }, '  ' + keyLabel(Settings.data.bindings.sandbox[0]) + ' to close')),
+      h('div', { class: 'sbh' }, 'SANDBOX TOOLS', h('span', { class: 'dim' }, '  ' + Input.label('sandbox') + ' to close')),
       h('div', { class: 'hint' }, 'Select a tool, then left-click in the world. Right-click clears the tool.'),
       h('div', { class: 'sbs' }, 'Spawn infected'), h('div', { class: 'grid' }, ...Object.entries(ZTYPES).map(([k, v]) => toolBtn('z:' + k, v.name))),
       h('div', { class: 'sbs' }, 'Spawn props'), h('div', { class: 'grid' }, ...Object.entries(PROP_DEFS).filter(([, d]) => d.w < 260).map(([k, d]) => toolBtn('p:' + k, d.label))),
