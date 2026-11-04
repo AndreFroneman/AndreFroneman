@@ -129,7 +129,8 @@ class Body {
         if (this.boneMissing(b.id)) { if (this.missing[b.id]) this.drawStump(ctx, b); continue; }
         if (b.id === 'head') { this.drawHead(ctx); continue; }
         const A = j[b.a], B = j[b.b];
-        const s = b.id === 'torso' ? (this.gutted ? spr.torsoGut : spr.torso) : spr[b.spr];
+        let s = b.id === 'torso' ? (this.gutted ? spr.torsoGut : spr.torso) : spr[b.spr];
+        if (this.grip && this.grip[b.id] && spr.faN) s = b.id === 'faF' ? spr.faN : spr.faNB;
         this.drawSeg(ctx, s, A.x, A.y, B.x, B.y, this.lenOf(b.id), b.id);
       }
     }

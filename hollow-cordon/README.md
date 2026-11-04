@@ -213,7 +213,10 @@ Weapons animate their reloads: magazines drop out and are re-seated by the suppo
 **Gun models** are drawn by a material-aware renderer:
 - Each part is shaded as blued or polished steel, polymer, wood, rubber, painted metal, brass or optic glass.
 - Parts cast soft contact shadows onto each other.
-- Every gun gets the details it needs: slide serrations, ejection ports with a case in the chamber, picatinny rails, vented handguards, pins and screws, checkered grips, triggers, muzzle crowns and magazine ridges. Melee weapons get honed edges, rust and grip tape.
+- Every gun gets the details it needs: slide serrations, ejection ports with a case in the chamber, picatinny rails, vented handguards, pins and screws, checkered grips, triggers in looped trigger guards, muzzle crowns and magazine ridges.
+- Some guns also get safety levers, slide stops and charging handles, knurled scope turrets, side-saddle shell carriers, and worn bluing on the edges.
+- Rifles and shotguns carry a sling that hangs with gravity at any aim angle.
+- Melee weapons get honed edges, rust and grip tape.
 
 | Slot | Weapon | Class | Damage | Mode | RPM | Mag | Ammo | Penetration | Unlocks | Price |
 |---|---|---|---|---|---|---|---|---|---|---|
@@ -272,7 +275,17 @@ Plus **frag grenades** (G).
 - **Locomotion:** walking and running use a foot-planted gait. Feet stay on the ground through each stance and swing forward on a lift arc, and IK solves the knees, so there's no foot sliding. Sprints have a flight phase. Each infected type has its own gait: shamble, jog, stomp, waddle, prowl or sprint. Footsteps play on the heel strike.
 - **Ladders:** climbing is hand over hand on the ladder's actual rungs, with your weapon slung on your back.
 - **Melee:** swings are keyframed per weapon. One-handed blades cut diagonally, the bat and the heavy weapons use two hands, and every swing has anticipation, torso drive, a step in and a follow-through. The kick chambers, extends and retracts. The infected rear back and lunge into their swipes.
-- **Models:** soft-blended shoulders, elbows and knees, gripping fists, cloth creases, rim lighting, detailed faces and hair, and survivor gear such as pouches, straps and boot tread.
+- **Weapon handling:**
+  - The firing hand wraps the pistol grip with the index finger on the trigger and the thumb along the frame.
+  - The support hand cradles the handguard, or cups the firing hand on pistols, and stays visible on the weapon.
+  - Long guns are shouldered with a cheek weld: the head drops to the stock and the rifle rises until its sights sit under the eye.
+  - Standing shooters take a staggered, soft-kneed stance and lean into the gun.
+  - Over-long stocks and fore-ends are kept within the arm's reach.
+- **Models:**
+  - Soft-blended shoulders, elbows and knees, cloth creases, rim lighting, and detailed faces and hair.
+  - Garment construction: zips with pulls, plackets, flapped pockets, seams, cuffs, unit patches and back pockets.
+  - Gear: vest webbing, a shoulder radio, a police back panel, hi-vis reflective strips, a full backpack with bedroll and harness, a belt pouch, and boots with lace hooks and heels.
+  - The infected get blood runs, exposed ribs and threads hanging from torn clothing.
 
 **AI:**
 - **Senses:** sight depends on light, flashlight, crouching and facing; hearing responds to gunshots, sprinting, doors and glass.

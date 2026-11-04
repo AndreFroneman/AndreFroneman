@@ -8,7 +8,7 @@
 const SURVIVORS = [
   {
     id: 'brandt', name: 'Ilya Brandt', role: 'Ex-army rifleman', perk: 'Reloads 20% faster. Rifles kick 15% less.',
-    look: { skin: '#c49a7a', shirt: '#4b5038', shirtType: 'jacket', sleeve: 'long', pants: '#3a3a30', cargo: true, shoeType: 'boot', shoes: '#2a2018', hair: '#3a2a1a', hairStyle: 'buzz', stubble: true, backpack: true, gloves: '#2a2a22', kneepads: true, eyes: '#4a5a3a' },
+    look: { skin: '#c49a7a', shirt: '#4b5038', shirtType: 'jacket', sleeve: 'long', pants: '#3a3a30', cargo: true, shoeType: 'boot', shoes: '#2a2018', hair: '#3a2a1a', hairStyle: 'buzz', stubble: true, backpack: true, gloves: '#2a2a22', kneepads: true, eyes: '#4a5a3a', patch: true },
     mods: { reload: 1.2, rifleKick: 0.85 }, start: 'p9',
   },
   {
@@ -580,10 +580,16 @@ class Player {
     let la = Math.atan2(this.my - sy, (this.mx - sx) * this.face);
     la = clamp(la, -1.35, 1.35);
     this.localAim = la;
+    const firearm = def && def.cat !== 'melee', longGun = firearm && def.hold !== 'pistol';
+    const ready = firearm ? (1 - this.carry) * (g.reloading || this.switchT > 0.2 ? 0.3 : 1) : 0; // how fully the weapon is shouldered
     if (!this.onLadder) {
       const lk = lerp(la, 0.1, this.carry); // sprinting: look where you run
-      b.pose.torso = target.torso + lk * 0.12 - (this.gunBack > 0 ? this.gunBack * 0.006 : 0);
-      b.pose.head = -Math.PI / 2 + lk * 0.55 + (target.torso + Math.PI / 2) * 0.3;
+      b.pose.torso = target.torso + lk * 0.12 - (this.gunBack > 0 ? this.gunBack * 0.006 : 0) + (longGun ? 0.12 : 0.05) * ready;
+      b.pose.head = -Math.PI / 2 + lk * (longGun ? 0.8 : 0.6) + (target.torso + Math.PI / 2) * 0.3 + (longGun ? 0.38 : 0.16) * ready; // head down to the sights
+      // shooting stance when standing: staggered feet, soft knees
+      if (firearm && this.grounded && (this.gaitAmp || 0) < 0.3 && this.kickT <= 0 && this.crouch < 0.3 && ready > 0.5) {
+        Pose.stance(d, b.pose, (longGun ? 7.5 : 5.5) * s, (longGun ? 10 : 7.5) * s, 2.6 * s);
+      }
     }
     b.fk(!this.onLadder && !this.vaulting);
     // ---- weapon & arms
@@ -593,7 +599,7 @@ class Player {
     if (this.onLadder || this.switchT > 0.2) {
       gunA = 1.1; hand = [S.x + 4, S.y + d.ua * 0.9];
       b.pose.uaF = b.pose.uaF; // keep climb pose arms
-      if (this.onLadder) { this.handLocal = [b.j.handF.x, b.j.handF.y]; this.gunAngLocal = 1.3; b.fk(false); return; }
+      if (this.onLadder) { b.grip = null; this.supHand = null; this.handLocal = [b.j.handF.x, b.j.handF.y]; this.gunAngLocal = 1.3; b.fk(false); return; }
     }
     if (def && def.cat === 'melee') { this.animateMelee(dt, def, la); return; }
     const gs = def ? GunArt.get(def) : null;
@@ -622,9 +628,20 @@ class Player {
     } else {
       const st = gs && gs.stock ? -gs.stock[0] : 24;
       const back = this.gunBack;
-      hand = [S.x + dir[0] * (st - 4 - back) - dir[1] * 2, S.y + dir[1] * (st - 4 - back) + dir[0] * 3];
+      const pull = Math.min(st - 4, (d.ua + d.fa) * 0.8); // a stock longer than the arm seats behind the shoulder
+      hand = [S.x + dir[0] * (pull - back) - dir[1] * 2, S.y + dir[1] * (pull - back) + dir[0] * 3];
     }
     if (this.switchT > 0.2) { gunA = 1.1; hand = [S.x + 6, S.y + d.ua * 0.95]; }
+    // cheek weld: lift the weapon until its sight line sits just under the eye
+    if (gs && ready > 0 && this.switchT <= 0.2) {
+      const jH = b.j.head, jN = b.j.neck, ha = Math.atan2(jH.y - jN.y, jH.x - jN.x) + Math.PI / 2, R = d.headR;
+      const ex = jH.x + Math.cos(ha) * (R - 3.4 * s) - Math.sin(ha) * (-1.4 * s), ey = jH.y + Math.sin(ha) * (R - 3.4 * s) + Math.cos(ha) * (-1.4 * s);
+      const ux = Math.sin(gunA), uy = -Math.cos(gunA); // "up" across the barrel
+      const dEye = (ex - hand[0]) * ux + (ey - hand[1]) * uy;
+      const want = gs.sightH + (pistol ? 5 * s : 1.4 * s);
+      const lift = clamp(dEye - want, -3, pistol ? 6 : 9) * ready;
+      hand = [hand[0] + ux * lift, hand[1] + uy * lift];
+    }
     this.handLocal = hand; this.gunAngLocal = gunA;
     // front arm IK to trigger hand
     const ikF = ik2(S.x, S.y, hand[0], hand[1], d.ua, d.fa * 0.92, -1);
@@ -642,11 +659,20 @@ class Player {
     if (backTarget === 'charge') sup = rot([gs && gs.eject ? gs.eject[0] : 6, -5]);
     else if (backTarget) sup = backTarget;
     if (magState === 'hand' && gs && gs.mag) sup = rot([gs.mag.ox + gs.mag.w * 0.5, gs.mag.oy + gs.mag.h * 0.9]);
+    // a fore-end beyond comfortable reach: slide the support hand back along the handguard
+    if (!pistol && !backTarget && magState !== 'hand') {
+      const reach = (d.ua + d.fa * 0.92) * 0.9;
+      for (let i = 0; i < 12 && Math.hypot(sup[0] - S.x, sup[1] - S.y) > reach; i++) { sup = [sup[0] - Math.cos(gunA) * 1.5, sup[1] - Math.sin(gunA) * 1.5]; }
+    }
     const ikB = ik2(S.x, S.y, sup[0], sup[1], d.ua, d.fa * 0.92, -1);
     b.pose.uaB = ikB[0]; b.pose.faB = ikB[1];
     if (pistol && this.carry > 0.5 && this.gaitTarget) { b.pose.uaB = this.gaitTarget.uaB; b.pose.faB = this.gaitTarget.faB; } // free arm pumps
     b.fk(false);
     this.magState = magState;
+    // grip hands: firing hand wraps the grip; support hand cups (pistol) or cradles the handguard
+    const supFree = (pistol && this.carry > 0.5) || backTarget || magState === 'hand' || this.switchT > 0.2 || (def && def.mode === 'bolt' && g.cycle > 0);
+    this.supHand = supFree ? null : pistol ? 'cup' : 'fore';
+    b.grip = { faF: this.switchT <= 0.2, faB: !!this.supHand };
   }
   // Melee: keyframed swings per weapon style. Tracks run on segment time
   // (0-1 windup, 1-2 swing, 2-3 recover) so they follow each weapon's
@@ -654,6 +680,7 @@ class Player {
   // angle, torso = lean, step/drop = lunge stance (px), back = free arm.
   animateMelee(dt, def, la) {
     const b = this.body, d = b.d, sc = d.s;
+    b.grip = null; this.supHand = null;
     const style = def.style || (def.heavy ? (def.blade ? 'chop' : 'smash') : def.blade ? 'slash' : 'bat');
     const T = MELEE_TRACKS[style], two = style !== 'slash';
     const sw = this.swing;
@@ -710,6 +737,17 @@ class Player {
         const gs = GunArt.get(g.def);
         const h = this.handLocal, a = this.gunAngLocal;
         c.save(); c.translate(h[0], h[1]); c.rotate(a);
+        // sling: hangs from the front swivel to the stock and always sags toward the ground
+        if (gs.fore && gs.stock && g.def.hold !== 'pistol') {
+          const f = [gs.fore[0] + 7, gs.fore[1] + 3.2], r = [gs.stock[0] + 6, gs.stock[1] + 5];
+          const dx = Math.sin(a), dy = Math.cos(a), sag = 10 + Math.abs(Math.sin(this.game.time * 1.7)) * 0.6 * Math.min(1, Math.abs(this.vx) / 100);
+          const mx = (f[0] + r[0]) / 2 + dx * sag * 1.8, my = (f[1] + r[1]) / 2 + dy * sag * 1.8;
+          c.lineCap = 'round';
+          c.beginPath(); c.moveTo(f[0], f[1]); c.quadraticCurveTo(mx, my, r[0], r[1]);
+          c.strokeStyle = 'rgba(0,0,0,0.85)'; c.lineWidth = 2.1; c.stroke(); c.strokeStyle = '#2f2e24'; c.lineWidth = 1.5; c.stroke();
+          c.strokeStyle = 'rgba(255,250,230,0.16)'; c.lineWidth = 0.4; c.stroke();
+          for (const q of [f, r]) { c.strokeStyle = '#6a6e74'; c.lineWidth = 0.5; c.beginPath(); c.arc(q[0], q[1], 0.9, 0, TAU); c.stroke(); }
+        }
         const bd = gs.body;
         c.drawImage(bd.cv, bd.ox, bd.oy, bd.w, bd.h);
         if (gs.pump) {
@@ -719,10 +757,21 @@ class Player {
         }
         if (gs.mag && this.magState === 'in') c.drawImage(gs.mag.cv, gs.mag.ox, gs.mag.oy, gs.mag.w, gs.mag.h);
         c.restore();
+        const H = this.body.spr.handsB;
+        if (H && this.supHand && this.body.grip) {
+          const hb = this.body.j.handB, hs = H[this.supHand];
+          c.save(); c.translate(hb.x, hb.y); c.rotate(a); c.drawImage(hs.cv, hs.ox, hs.oy, hs.w, hs.h); c.restore();
+        }
         if (gs.mag && this.magState === 'hand') {
           const hb = this.body.j.handB;
           c.save(); c.translate(hb.x, hb.y); c.rotate(a + 0.2); c.drawImage(gs.mag.cv, -gs.mag.w / 2, -gs.mag.h * 0.8, gs.mag.w, gs.mag.h); c.restore();
         }
+      },
+      front: (c) => {
+        const H = this.body.spr.hands, b = this.body;
+        if (!g || !H || !b.grip || !b.grip.faF || this.onLadder || !this.handLocal || b.boneMissing('faF')) return;
+        const hs = H.grip, h = b.j.handF;
+        c.save(); c.translate(h.x, h.y); c.rotate(this.gunAngLocal); c.drawImage(hs.cv, hs.ox, hs.oy, hs.w, hs.h); c.restore();
       },
     });
   }

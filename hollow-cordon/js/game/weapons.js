@@ -358,26 +358,26 @@ const GUN_DETAIL = {
   bat: [['tape', -6, -2.1, 11, 4.2], ['rust', 34, -3.5, 18, 7, 6]],
   axe: [['pin', 50.5, -0.5, 0.9], ['rust', 45, -12, 10, 22, 8], ['edge', [60.5, -13.5, 60.5, 11.5]]],
   sledge: [['rust', 50, -10, 13, 20, 12], ['tape', -6, -1.8, 13, 3.6], ['pin', 56.5, 0, 1]],
-  p9: [['port', 9.5, -7.4, 6, 2.2], ['pin', 4.6, 0.6, 0.5], ['pin', 9.5, -1, 0.5]],
-  keeper: [['port', 9, -7.9, 6, 2.2], ['screw', 1.4, 2.6, 0.8], ['screw', 0.4, 9, 0.8], ['pin', 5.2, -0.6, 0.5]],
-  magistrate: [['pin', 7, -4.4, 0.75], ['screw', -1.3, -4.5, 0.6], ['screw', 0.4, 5.2, 0.7]],
-  bastion: [['pin', 7.5, -5, 0.8], ['screw', -1.4, -5, 0.6], ['screw', 0.6, 5.5, 0.7]],
-  vex: [['rail', 0, -10.6, 16], ['port', 10, -7.2, 7, 2.2], ['vents', 25.5, -6, 11, 2.4, 4], ['pin', 2, -2.8, 0.5], ['pin', 16, -2.8, 0.5]],
+  p9: [['port', 9.5, -7.4, 6, 2.2], ['pin', 4.6, 0.6, 0.5], ['pin', 9.5, -1, 0.5], ['lever', 3.2, -2.4, 8.2, -2.7, 0.8]],
+  keeper: [['port', 9, -7.9, 6, 2.2], ['screw', 1.4, 2.6, 0.8], ['screw', 0.4, 9, 0.8], ['pin', 5.2, -0.6, 0.5], ['lever', 3, -2.9, 8, -3.2, 0.8], ['lever', -2.6, -4.8, -0.6, -6.2, 0.7]],
+  magistrate: [['pin', 7, -4.4, 0.75], ['screw', -1.3, -4.5, 0.6], ['screw', 0.4, 5.2, 0.7], ['lever', 0.5, -6, 3, -6.4, 0.7]],
+  bastion: [['pin', 7.5, -5, 0.8], ['screw', -1.4, -5, 0.6], ['screw', 0.6, 5.5, 0.7], ['lever', 0.5, -7, 3, -7.4, 0.7]],
+  vex: [['rail', 0, -10.6, 16], ['port', 10, -7.2, 7, 2.2], ['vents', 25.5, -6, 11, 2.4, 4], ['pin', 2, -2.8, 0.5], ['pin', 16, -2.8, 0.5], ['lever', 19.5, -11.2, 23.5, -12.4, 0.8]],
   ratchet: [['port', 9, -7.6, 6, 2.2], ['serr', -2.5, -8.2, 6, 2.2, 5], ['pin', 14, -2.2, 0.5]],
   kestrel: [['vents', -16, -6.5, 10, 2.4, 4], ['port', -18.5, -1.4, 5, 2], ['pin', 8, -3, 0.5], ['pin', 15, -3, 0.5]],
-  parish: [['port', 6, -6.3, 7, 2.2], ['pin', -1, -2.4, 0.6], ['pin', 15, -2.4, 0.6]],
+  parish: [['port', 6, -6.3, 7, 2.2], ['pin', -1, -2.4, 0.6], ['pin', 15, -2.4, 0.6], ['shells', -4.2, -6.4, 4]],
   breaker: [['screw', -3, -3.4, 0.6], ['screw', 2.8, -3.4, 0.6], ['pin', -1.2, -6, 0.45]],
-  thresher: [['rail', -2, -10, 20], ['port', 6, -7.3, 7, 2.2], ['vents', 24, -3.8, 12, 2, 4], ['pin', -1, -2, 0.5], ['pin', 16, -2, 0.5]],
+  thresher: [['rail', -2, -10, 20], ['port', 6, -7.3, 7, 2.2], ['vents', 24, -3.8, 12, 2, 4], ['pin', -1, -2, 0.5], ['pin', 16, -2, 0.5], ['shells', -4.2, -7.4, 4], ['lever', 18, -4, 21, -4, 0.9]],
   mauler: [['rail', 0, -14, 22], ['port', 6, -8, 7, 2.4], ['vents', 33, -6.4, 13, 1.8, 4], ['pin', 26, -3, 0.55]],
-  kolba: [['port', 7, -6.6, 7, 2.2], ['serr', 16, -9.3, 5, 2.4, 5], ['pin', -3, -2.2, 0.55], ['pin', 3, -2.2, 0.55], ['pin', 21, -2.2, 0.55], ['pin', 21, -5.4, 0.55]],
-  c7: [['rail', -5, -10.2, 26], ['port', 8, -8.6, 7, 2.2], ['vents', 24, -6.6, 14, 2, 4], ['pin', 1, -4, 0.5], ['pin', 13, -4, 0.5]],
+  kolba: [['port', 7, -6.6, 7, 2.2], ['serr', 16, -9.3, 5, 2.4, 5], ['pin', -3, -2.2, 0.55], ['pin', 3, -2.2, 0.55], ['pin', 21, -2.2, 0.55], ['pin', 21, -5.4, 0.55], ['lever', -3.2, -5.2, 8.5, -4.4, 0.9], ['vents', 61.5, -6, 4.5, 2.2, 2]],
+  c7: [['rail', -5, -10.2, 26], ['port', 8, -8.6, 7, 2.2], ['vents', 24, -6.6, 14, 2, 4], ['pin', 1, -4, 0.5], ['pin', 13, -4, 0.5], ['lever', -6, -9.2, -9, -9.6, 0.9], ['pin', 6.5, -3.6, 0.6]],
   spindle: [['port', -18, -7.2, 6, 2.2], ['vents', 8, -7.2, 10, 2.2, 4], ['pin', -8, -4, 0.5], ['pin', 14, -4, 0.5]],
-  graver: [['rail', 6, -13, 14], ['port', 8, -8.2, 8, 2.4], ['vents', 27.5, -6.4, 14, 2.4, 4], ['vents', 63.5, -7, 4, 2.4, 2], ['pin', 0, -3, 0.55], ['pin', 20, -3, 0.55]],
-  longshank: [['port', 3, -8.6, 7, 2], ['screw', -2.5, -0.5, 0.6], ['pin', 10, -7.5, 0.5]],
-  palehorse: [['port', 4, -8.2, 7, 2], ['screw', -4.5, -2.8, 0.6], ['screw', 30, 0, 0.55]],
-  ironwake: [['rail', -4, -14.6, 26], ['port', 20, -9.4, 9, 2.6], ['vents', 85, -8.8, 7.5, 3, 2], ['pin', 0, -4, 0.6], ['pin', 30, -4, 0.6], ['pin', 40, 0, 0.9]],
-  brushfire: [['rail', -2, -13.6, 22], ['vents', 33.5, -7, 15, 2.4, 5], ['port', 12, -2.4, 8, 1.8], ['pin', 0, -4, 0.6], ['pin', 26, -4, 0.6]],
-  grinder: [['rail', -2, -15, 26], ['port', 14, -2.6, 9, 1.8], ['pin', 0, -5, 0.6], ['pin', 30, -5, 0.6], ['pin', 58, -3, 0.9]],
+  graver: [['rail', 6, -13, 14], ['port', 8, -8.2, 8, 2.4], ['vents', 27.5, -6.4, 14, 2.4, 4], ['vents', 63.5, -7, 4, 2.4, 2], ['pin', 0, -3, 0.55], ['pin', 20, -3, 0.55], ['lever', 24, -9.2, 28.5, -11, 0.9]],
+  longshank: [['port', 3, -8.6, 7, 2], ['screw', -2.5, -0.5, 0.6], ['pin', 10, -7.5, 0.5], ['turret', 5.2, -19.4, 3.6, 2.9], ['turret', 8.6, -12.4, 2.6, 1.6]],
+  palehorse: [['port', 4, -8.2, 7, 2], ['screw', -4.5, -2.8, 0.6], ['screw', 30, 0, 0.55], ['turret', 7.2, -20.6, 4, 3.1], ['turret', 11.6, -12.8, 2.8, 1.6]],
+  ironwake: [['rail', -4, -14.6, 26], ['port', 20, -9.4, 9, 2.6], ['vents', 85, -8.8, 7.5, 3, 2], ['pin', 0, -4, 0.6], ['pin', 30, -4, 0.6], ['pin', 40, 0, 0.9], ['turret', 7.5, -22.6, 4.2, 3.1], ['turret', 12, -14.4, 3, 1.6]],
+  brushfire: [['rail', -2, -13.6, 22], ['vents', 33.5, -7, 15, 2.4, 5], ['port', 12, -2.4, 8, 1.8], ['pin', 0, -4, 0.6], ['pin', 26, -4, 0.6], ['lever', 28, -9, 31.5, -10.5, 1]],
+  grinder: [['rail', -2, -15, 26], ['port', 14, -2.6, 9, 1.8], ['pin', 0, -5, 0.6], ['pin', 30, -5, 0.6], ['pin', 58, -3, 0.9], ['lever', 33, -10, 36.5, -11.6, 1]],
 };
 
 // ---------------------------------------------------------------- art baking
@@ -424,6 +424,7 @@ const GunArt = (() => {
       // brushed finish + a hard specular line under the top edge
       for (let i = 0; i < w * h * 0.35; i++) { c.fillStyle = rng() < 0.5 ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.07)'; c.fillRect(x0 + rng() * w, y0 + rng() * h, rng.range(1.5, 5), 0.18); }
       c.fillStyle = mat === 'bright' ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.18)'; c.fillRect(x0, y0 + Math.min(1, h * 0.18), w, 0.35);
+      if (mat === 'steel') for (let i = 0; i < w * 0.5; i++) { c.fillStyle = `rgba(190,195,200,${rng.range(0.15, 0.4)})`; c.fillRect(x0 + rng() * w, rng() < 0.7 ? y0 + rng() * 0.6 : y1 - 0.5 - rng() * 0.4, rng.range(0.4, 1.6), 0.22); } // worn bluing at the edges
     } else if (mat === 'poly' || mat === 'rubber' || mat === 'paint') {
       for (let i = 0; i < w * h * 1.4; i++) { c.fillStyle = rng() < 0.5 ? 'rgba(255,255,255,0.045)' : 'rgba(0,0,0,0.09)'; c.fillRect(x0 + rng() * w, y0 + rng() * h, 0.32, 0.32); }
       if (mat === 'paint') { // chipped edges show bare metal
@@ -497,6 +498,26 @@ const GunArt = (() => {
     } else if (t === 'edge') { // sharpened edge bevel along a blade
       const [, pts] = p;
       c.strokeStyle = 'rgba(235,240,245,0.85)'; c.lineWidth = 0.7; c.beginPath(); c.moveTo(pts[0], pts[1]); for (let i = 2; i < pts.length; i += 2) c.lineTo(pts[i], pts[i + 1]); c.stroke();
+    } else if (t === 'lever') { // safety / slide stop / charging handle
+      const [, x0, y0, x1, y1, w = 0.9] = p;
+      c.lineCap = 'round'; c.strokeStyle = 'rgba(0,0,0,0.85)'; c.lineWidth = w + 0.6; c.beginPath(); c.moveTo(x0, y0); c.lineTo(x1, y1); c.stroke();
+      c.strokeStyle = '#3c4046'; c.lineWidth = w; c.stroke(); c.strokeStyle = 'rgba(255,255,255,0.3)'; c.lineWidth = w * 0.3; c.beginPath(); c.moveTo(x0, y0 - w * 0.25); c.lineTo(x1, y1 - w * 0.25); c.stroke();
+      c.fillStyle = '#4a4e54'; c.beginPath(); c.arc(x1, y1, w * 0.75, 0, TAU); c.fill();
+    } else if (t === 'turret') { // knurled scope turret
+      const [, x, y, w, h] = p;
+      c.fillStyle = '#16171a'; roundRect(c, x, y, w, h, 0.5); c.fill();
+      c.fillStyle = 'rgba(255,255,255,0.22)'; for (let xx = x + 0.4; xx < x + w; xx += 0.7) c.fillRect(xx, y + 0.3, 0.25, h - 0.6);
+      c.fillStyle = 'rgba(255,255,255,0.3)'; c.fillRect(x, y, w, 0.3);
+    } else if (t === 'shells') { // side-saddle shell carrier
+      const [, x, y, n] = p;
+      c.fillStyle = '#141414'; roundRect(c, x - 0.4, y - 0.4, n * 1.9 + 0.4, 5.4, 0.6); c.fill();
+      for (let i = 0; i < n; i++) {
+        const xx = x + i * 1.9;
+        const g = c.createLinearGradient(xx, 0, xx + 1.5, 0); g.addColorStop(0, '#5a1410'); g.addColorStop(0.5, '#b0362a'); g.addColorStop(1, '#4a0e0a');
+        c.fillStyle = g; c.fillRect(xx, y + 1.3, 1.5, 3.4);
+        const b = c.createLinearGradient(xx, 0, xx + 1.5, 0); b.addColorStop(0, '#6a5420'); b.addColorStop(0.5, '#e0c060'); b.addColorStop(1, '#5a4418');
+        c.fillStyle = b; c.fillRect(xx, y, 1.5, 1.4);
+      }
     } else if (t === 'rust') {
       const [, x, y, w, h, n] = p;
       for (let i = 0; i < n; i++) { c.fillStyle = `rgba(${rng.int(90, 130)},${rng.int(40, 60)},20,${rng.range(0.25, 0.6)})`; c.beginPath(); c.ellipse(x + rng() * w, y + rng() * h, rng.range(0.3, 1.3), rng.range(0.2, 0.7), rng() * 3, 0, TAU); c.fill(); }
@@ -550,7 +571,14 @@ const GunArt = (() => {
   function drawParts(c, parts, rng, isMag) {
     for (const p of parts) {
       const t = p[0];
-      if (t === 'a') { c.beginPath(); c.lineWidth = 1.2; c.strokeStyle = 'rgba(0,0,0,0.8)'; c.arc(p[1], p[2], p[3], 0, Math.PI); c.stroke(); c.beginPath(); c.lineWidth = 0.8; c.strokeStyle = rgba(shade(p[4], 0.25), 1); c.arc(p[1], p[2] - 0.15, p[3], 0.15, Math.PI - 0.15); c.stroke(); continue; }
+      if (t === 'a') { // trigger guard: a loop from the grip, under the trigger, up to the frame
+        const [, x, y, r, col] = p;
+        const guard = () => { c.beginPath(); c.moveTo(x - r * 0.95, y - r * 0.2); c.quadraticCurveTo(x - r * 0.9, y + r * 1.05, x + r * 0.1, y + r * 1.02); c.quadraticCurveTo(x + r * 1.05, y + r * 0.95, x + r * 1.08, y - r * 0.55); };
+        guard(); c.lineCap = 'round'; c.lineWidth = 1.5; c.strokeStyle = 'rgba(0,0,0,0.85)'; c.stroke();
+        guard(); c.lineWidth = 0.9; c.strokeStyle = col; c.stroke();
+        c.save(); c.translate(0, -0.25); guard(); c.lineWidth = 0.3; c.strokeStyle = 'rgba(255,255,255,0.28)'; c.stroke(); c.restore();
+        continue;
+      }
       if (t === 'l') { c.beginPath(); c.lineWidth = p[5]; c.strokeStyle = p[6]; c.moveTo(p[1], p[2]); c.lineTo(p[3], p[4]); c.stroke(); continue; }
       if (t === 'r' || t === 'p' || t === 'c') { drawSolid(c, p, rng); continue; }
       drawDetail(c, p, rng);
@@ -600,6 +628,15 @@ const GunArt = (() => {
     out.eject = rel(a.eject) || [6, -5];
     out.stock = rel(a.stock);
     out.pumpPos = a.pump ? [a.pump[0] - a.hand[0], -a.hand[1]] : null;
+    // sight line: top of the receiver / optic just ahead of the firing hand
+    let top = Infinity;
+    for (const p of a.parts) {
+      if (p[0] !== 'r' && p[0] !== 'p') continue;
+      const xs = p[0] === 'r' ? [p[1], p[1] + p[3]] : p[1].filter((_, i) => i % 2 === 0), ys = p[0] === 'r' ? [p[2]] : p[1].filter((_, i) => i % 2 === 1);
+      if (Math.max(...xs) < a.hand[0] - 4 || Math.min(...xs) > a.hand[0] + 16) continue;
+      top = Math.min(top, ...ys);
+    }
+    out.sightH = top === Infinity ? 6 : a.hand[1] - top - 1.2;
     out.pumpTravel = a.pump ? a.pump[1] - a.pump[0] : 0;
     // icon for HUD (silhouette)
     const ic = makeCanvas(out.body.cv.width, out.body.cv.height), icc = ic.getContext('2d');

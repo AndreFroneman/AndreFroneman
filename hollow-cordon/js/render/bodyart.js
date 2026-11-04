@@ -57,6 +57,21 @@ const BodyArt = (() => {
     c.beginPath(); c.arc(L, 0, t1 / 2, -Math.PI / 2, Math.PI / 2); c.stroke();
     c.beginPath(); c.arc(0, 0, t0 / 2, Math.PI / 2, Math.PI * 1.5); c.stroke();
   }
+  // stitched seam along a curve
+  function seam(c, pts, col) {
+    c.strokeStyle = rgba(shade(col, -0.5), 0.8); c.lineWidth = 0.45; c.beginPath(); c.moveTo(pts[0], pts[1]);
+    if (pts.length === 6) c.quadraticCurveTo(pts[2], pts[3], pts[4], pts[5]); else c.lineTo(pts[2], pts[3]); c.stroke();
+    c.strokeStyle = rgba(shade(col, 0.45), 0.45); c.lineWidth = 0.28; c.setLineDash([0.7, 0.6]); c.stroke(); c.setLineDash([]);
+  }
+  // blood running from a wound, toward -x (downward on an upright torso) or +x on a hanging limb
+  function bloodRun(c, rng, x, y, len, dir, s) {
+    c.strokeStyle = 'rgba(70,6,6,0.75)'; c.lineCap = 'round';
+    let xx = x, yy = y, w = rng.range(0.6, 1.1) * s;
+    c.beginPath(); c.moveTo(xx, yy);
+    for (let k = 0; k < 5; k++) { xx += dir * len / 5; yy += rng.range(-0.5, 0.5) * s; c.lineTo(xx, yy); }
+    c.lineWidth = w; c.stroke();
+    c.fillStyle = 'rgba(60,4,4,0.85)'; c.beginPath(); c.arc(xx, yy, w * 0.75, 0, TAU); c.fill();
+  }
   // cloth creases: n short folds around x, on side sgn (-1 front/top, 1 back)
   function creases(c, rng, x, spread, T, n, col, sgn = 0) {
     for (let i = 0; i < n; i++) {
@@ -164,10 +179,38 @@ const BodyArt = (() => {
         c.fillStyle = shade(shirt, -0.15); c.fillRect(L * 0.2, T / 2 - 4 * s, L * 0.35, 4 * s);
       }
       if (look.shirtType === 'jacket') {
-        c.strokeStyle = shade(shirt, -0.5); c.lineWidth = 0.6; c.beginPath(); c.moveTo(-2 * s, T / 2 - 1 * s); c.lineTo(L, T / 2 - 1.5 * s); c.stroke();
-        c.fillStyle = shade(shirt, -0.3); c.fillRect(L * 0.15, T / 2 - 7 * s, 7 * s, 1 * s);
-        c.fillStyle = shade(shirt, 0.2); c.fillRect(L * 0.7, -T / 2, 2 * s, T * 0.4);
+        // zip with teeth and pull, zipped chest pocket, hem band, shoulder yoke, stand collar
+        const zy = T / 2 - 1.7 * s;
+        c.fillStyle = shade(shirt, -0.45); c.fillRect(1 * s, zy - 0.6 * s, L - 1 * s, 1.2 * s);
+        c.strokeStyle = 'rgba(205,205,195,0.55)'; c.lineWidth = 0.4; c.setLineDash([0.45, 0.45]); c.beginPath(); c.moveTo(1 * s, zy); c.lineTo(L, zy); c.stroke(); c.setLineDash([]);
+        c.fillStyle = '#a4a498'; roundRect(c, L * 0.8, zy - 0.5 * s, 2 * s, 1 * s, 0.3 * s); c.fill();
+        c.fillStyle = shade(shirt, -0.15); roundRect(c, L * 0.48, T / 2 - 8 * s, 7.5 * s, 5.2 * s, 0.8 * s); c.fill();
+        c.strokeStyle = shade(shirt, -0.55); c.lineWidth = 0.4; c.stroke();
+        c.strokeStyle = 'rgba(205,205,195,0.5)'; c.lineWidth = 0.35; c.beginPath(); c.moveTo(L * 0.48 + 7 * s, T / 2 - 7.4 * s); c.lineTo(L * 0.48 + 0.6 * s, T / 2 - 7.4 * s); c.stroke();
+        c.fillStyle = shade(shirt, -0.22); c.fillRect(1.5 * s, -T, 2.6 * s, T * 2);
+        seam(c, [1.5 * s, -T / 2, 1.5 * s, T / 2], shirt); seam(c, [4.1 * s, -T / 2, 4.1 * s, T / 2], shirt);
+        seam(c, [L * 0.7, -T / 2, L * 0.8, 0, L * 0.74, T / 2], shirt);
+        c.fillStyle = shade(shirt, -0.12); c.beginPath(); c.moveTo(L - 3 * s, -T / 2 + 1 * s); c.quadraticCurveTo(L + 4 * s, -T * 0.1, L + 1.5 * s, T / 2 - 0.5 * s); c.lineTo(L - 1.5 * s, T / 2 - 1 * s); c.closePath(); c.fill();
+        c.strokeStyle = shade(shirt, -0.55); c.lineWidth = 0.45; c.stroke();
       }
+      if (look.shirtType === 'uniform') {
+        // button placket, flapped chest pocket, epaulette
+        c.fillStyle = shade(shirt, 0.08); c.fillRect(1 * s, T / 2 - 2.6 * s, L - 1 * s, 1.6 * s);
+        seam(c, [1 * s, T / 2 - 2.6 * s, L, T / 2 - 2.6 * s], shirt);
+        c.fillStyle = shade(shirt, -0.12); roundRect(c, L * 0.52, T / 2 - 8.5 * s, 6.5 * s, 5.5 * s, 0.6 * s); c.fill();
+        c.fillStyle = shade(shirt, -0.28); c.beginPath(); c.moveTo(L * 0.52 + 6.5 * s, T / 2 - 8.5 * s); c.lineTo(L * 0.52, T / 2 - 8.5 * s); c.lineTo(L * 0.52 + 0.5 * s, T / 2 - 6 * s); c.lineTo(L * 0.52 + 6 * s, T / 2 - 6 * s); c.closePath(); c.fill();
+        c.fillStyle = '#c8c4b0'; c.beginPath(); c.arc(L * 0.52 + 3.2 * s, T / 2 - 6.6 * s, 0.45 * s, 0, TAU); c.fill();
+        c.fillStyle = shade(shirt, -0.3); roundRect(c, L - 5 * s, -T / 2 + 0.5 * s, 4 * s, T * 0.55, 0.6 * s); c.fill();
+      }
+      if (look.shirtType === 'hoodie') {
+        // ribbed hem, hood rim, drawcords with aglets
+        c.fillStyle = shade(shirt, -0.18); c.fillRect(0, -T, 3.2 * s, T * 2);
+        c.strokeStyle = rgba(shade(shirt, -0.5), 0.6); c.lineWidth = 0.3; for (let y = -T / 2; y < T / 2; y += 0.9 * s) { c.beginPath(); c.moveTo(0, y); c.lineTo(3.2 * s, y); c.stroke(); }
+        seam(c, [L - 5 * s, -T / 2, L - 1 * s, -T * 0.05, L - 3 * s, T / 2], shirt);
+        c.strokeStyle = 'rgba(235,235,230,0.8)'; c.lineWidth = 0.55;
+        for (const dy of [0.28, 0.4]) { c.beginPath(); c.moveTo(L - 2 * s, T * dy); c.quadraticCurveTo(L - 6 * s, T * dy + 0.8 * s, L - 9.5 * s, T * dy + 0.3 * s); c.stroke(); c.fillStyle = '#d8d8d0'; c.fillRect(L - 10.4 * s, T * dy, 1 * s, 0.6 * s); }
+      }
+      if (!look.zombie) seam(c, [L * 0.05, 0, L * 0.5, -T * 0.06, L * 0.86, 0], shirt); // side seam
       if (look.shirtType === 'scrubs') { c.fillStyle = shade(shirt, -0.2); poly(c, [L, T * 0.1, L - 7 * s, T / 2, L, T / 2]); c.fill(); }
       // fabric gathers at the waist, and a rim light along the back
       if (!look.armor && !look.hazmat) creases(c, rng, L * 0.22, L * 0.12, T, 3, shirt, 1);
@@ -178,13 +221,32 @@ const BodyArt = (() => {
         const vc = look.vest === 'police' ? '#1b2230' : look.vest === 'military' ? '#4a4b33' : look.vest === 'hivis' ? '#c8d22a' : '#2a2a2a';
         c.fillStyle = vc; c.fillRect(L * 0.18, -T / 2 - 1, L * 0.72, T + 2);
         shadeAcross(c, L * 0.18, L * 0.9, T, vc, 1);
-        if (look.vest === 'hivis') { c.fillStyle = 'rgba(220,220,220,0.85)'; c.fillRect(L * 0.3, -T / 2, 2 * s, T); c.fillRect(L * 0.6, -T / 2, 2 * s, T); }
+        if (look.vest === 'hivis') {
+          for (const x of [L * 0.3, L * 0.6]) {
+            const g2 = c.createLinearGradient(0, -T / 2, 0, T / 2); g2.addColorStop(0, '#f4f4ee'); g2.addColorStop(0.5, '#b8b8b0'); g2.addColorStop(1, '#e8e8e0');
+            c.fillStyle = g2; c.fillRect(x, -T / 2, 2.2 * s, T); c.fillStyle = 'rgba(0,0,0,0.25)'; c.fillRect(x, -T / 2, 2.2 * s, 0.4);
+          }
+          c.fillStyle = shade(vc, -0.18); roundRect(c, L * 0.38, T / 2 - 6 * s, 6 * s, 5 * s, 0.6 * s); c.fill(); seam(c, [L * 0.38, T / 2 - 6 * s, L * 0.38 + 6 * s, T / 2 - 6 * s], vc);
+          c.fillStyle = 'rgba(0,0,0,0.12)'; for (let i = 0; i < 160; i++) c.fillRect(L * 0.18 + rng() * L * 0.72, -T / 2 + rng() * T, 0.35, 0.35); // mesh
+        }
         else {
+          // webbing rows across the panel
+          for (const x of [L * 0.32, L * 0.44, L * 0.56]) { c.fillStyle = shade(vc, -0.25); c.fillRect(x, -T / 2, 1.3 * s, T); c.fillStyle = 'rgba(0,0,0,0.45)'; for (let y = -T / 2 + 1 * s; y < T / 2; y += 2.2 * s) c.fillRect(x, y, 1.3 * s, 0.35); }
           c.fillStyle = shade(vc, -0.35);
           for (let i = 0; i < 3; i++) { roundRect(c, L * (0.22 + i * 0.2), T / 2 - 6.5 * s, 5.2 * s, 7 * s, 1); c.fill(); }
           c.strokeStyle = shade(vc, 0.2); c.lineWidth = 0.4;
           for (let i = 0; i < 3; i++) { c.beginPath(); c.moveTo(L * (0.22 + i * 0.2), T / 2 - 5 * s); c.lineTo(L * (0.22 + i * 0.2) + 5.2 * s, T / 2 - 5 * s); c.stroke(); }
-          if (look.vest === 'police') { c.fillStyle = '#c9b25a'; c.beginPath(); c.arc(L * 0.78, T * 0.2, 1.4 * s, 0, TAU); c.fill(); }
+          if (look.vest === 'police') {
+            c.fillStyle = '#c9b25a'; c.beginPath(); c.arc(L * 0.78, T * 0.2, 1.4 * s, 0, TAU); c.fill();
+            c.fillStyle = 'rgba(255,255,230,0.5)'; c.beginPath(); c.arc(L * 0.78 + 0.4 * s, T * 0.2 - 0.4 * s, 0.5 * s, 0, TAU); c.fill();
+            c.fillStyle = 'rgba(230,230,220,0.85)'; c.fillRect(L * 0.46, -T / 2 + 1 * s, L * 0.28, 2.4 * s); // POLICE back panel
+            c.fillStyle = 'rgba(20,24,34,0.9)'; for (let k = 0; k < 6; k++) c.fillRect(L * 0.48 + k * L * 0.042, -T / 2 + 1.4 * s, L * 0.025, 1.6 * s);
+          }
+          // shoulder radio with antenna
+          c.fillStyle = '#111316'; roundRect(c, L * 0.66, T / 2 - 4.5 * s, 4.2 * s, 3.4 * s, 0.6 * s); c.fill();
+          c.fillStyle = 'rgba(255,255,255,0.15)'; c.fillRect(L * 0.66, T / 2 - 4.5 * s, 4.2 * s, 0.4);
+          c.fillStyle = '#7a2a1a'; c.fillRect(L * 0.66 + 0.6 * s, T / 2 - 3.8 * s, 0.8 * s, 0.8 * s);
+          c.strokeStyle = '#0c0d0f'; c.lineWidth = 0.7 * s; c.beginPath(); c.moveTo(L * 0.66 + 4 * s, T / 2 - 3.6 * s); c.lineTo(L * 0.66 + 8.5 * s, T / 2 - 3.8 * s); c.stroke();
         }
       }
       if (look.armor) { // riot shoulder/chest plates
@@ -200,6 +262,11 @@ const BodyArt = (() => {
           c.fillStyle = shade(look.skin, -0.1);
           c.beginPath(); for (let k = 0; k < 8; k++) { const a = k / 8 * TAU, rr = r * rng.range(0.6, 1.2); k ? c.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr) : c.moveTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr); } c.closePath(); c.fill();
           if (rng() < 0.6) rottenPatch(c, rng, x, y, r * 0.6);
+          if (look.decay > 0.5 && i === 0) { // ribs showing through the tear
+            c.fillStyle = '#3a0808'; c.beginPath(); c.ellipse(x, y, r * 0.75, r * 0.55, 0, 0, TAU); c.fill();
+            c.strokeStyle = '#d8cdb4'; c.lineWidth = 0.8 * s; for (let k = -1; k <= 1; k++) { c.beginPath(); c.moveTo(x + k * r * 0.42, y - r * 0.45); c.quadraticCurveTo(x + k * r * 0.42 + r * 0.12, y, x + k * r * 0.42, y + r * 0.45); c.stroke(); }
+          }
+          bloodRun(c, rng, x - r * 0.4, y + rng.range(-r, r) * 0.4, rng.range(4, 9) * s, -1, s);
         }
         for (let i = 0; i < 4 + look.blood * 6; i++) stain(c, rng, rng.range(L * 0.4, L + 2 * s), rng.range(-T * 0.1, T / 2), rng.range(2, 5) * s, '#4a0808', 0.7);
       } else if (look.blood) {
@@ -214,7 +281,10 @@ const BodyArt = (() => {
       if (look.backpack) {
         c.fillStyle = '#2e2a20'; roundRect(c, L * 0.15, -T / 2 - 2, L * 0.65, 6 * s, 2 * s); c.fill();
         c.strokeStyle = 'rgba(0,0,0,0.5)'; c.lineWidth = 0.4; c.beginPath(); c.moveTo(L * 0.2, -T / 2 + 2.5 * s); c.lineTo(L * 0.75, -T / 2 + 2.5 * s); c.stroke();
-        c.fillStyle = '#1e1b15'; c.fillRect(L * 0.55, -T / 2, 1.6 * s, T * 0.85); // shoulder strap
+        // harness strap over the shoulder and down the chest
+        c.strokeStyle = '#1e1b15'; c.lineWidth = 2 * s; c.beginPath(); c.moveTo(L * 0.82, -T / 2); c.quadraticCurveTo(L + 1 * s, T * 0.05, L * 0.62, T / 2 - 2 * s); c.lineTo(L * 0.3, T / 2 - 2.5 * s); c.stroke();
+        c.strokeStyle = 'rgba(255,255,255,0.12)'; c.lineWidth = 0.4; c.stroke();
+        c.fillStyle = '#5a5648'; roundRect(c, L * 0.58, T / 2 - 3.3 * s, 2 * s, 1.8 * s, 0.4 * s); c.fill(); // buckle
       }
       if (!look.zombie && !look.coat && look.shirtType !== 'gown' && !look.hazmat) {
         // belt pouch / holster on the hip
@@ -237,10 +307,34 @@ const BodyArt = (() => {
       }
       c.restore();
       body(); outline(c, 'rgba(10,8,8,0.85)', 0.8);
+      if (look.backpack) {
+        // the pack itself, standing off the back: flap, compression straps, side pocket, bedroll
+        const x0 = L * 0.12, x1 = L * 0.82, y0 = -T / 2 - 7 * s, y1 = -T / 2 + 1.6 * s, pc = '#3b3526';
+        const pack = () => { c.beginPath(); roundRect(c, x0, y0, x1 - x0, y1 - y0, 2.4 * s); };
+        pack(); c.fillStyle = pc; c.fill();
+        c.save(); pack(); c.clip();
+        const g3 = c.createLinearGradient(0, y0, 0, y1); g3.addColorStop(0, shade(pc, -0.45)); g3.addColorStop(0.45, shade(pc, 0.1)); g3.addColorStop(1, shade(pc, -0.25));
+        c.fillStyle = g3; c.fillRect(x0, y0, x1 - x0, y1 - y0);
+        fabricNoise(c, rng, x0, y0, x1 - x0, y1 - y0, 220, 0.22);
+        c.fillStyle = shade(pc, -0.12); roundRect(c, x1 - 8 * s, y0 - 1, 8.5 * s, y1 - y0 + 2, 1.5 * s); c.fill(); // top flap
+        seam(c, [x1 - 8 * s, y0 + 1 * s, x1 - 8 * s, y1 - 1 * s], pc);
+        c.fillStyle = shade(pc, -0.08); roundRect(c, x0 + 1 * s, y0 + 0.8 * s, 9 * s, 4.6 * s, 1.2 * s); c.fill(); seam(c, [x0 + 1 * s, y0 + 2.2 * s, x0 + 10 * s, y0 + 2.2 * s], pc);
+        for (const xx of [x0 + (x1 - x0) * 0.4, x0 + (x1 - x0) * 0.62]) { c.fillStyle = '#1a1712'; c.fillRect(xx, y0, 1.4 * s, y1 - y0); c.fillStyle = '#6a6656'; c.fillRect(xx - 0.2 * s, y0 + 1.2 * s, 1.8 * s, 1.4 * s); }
+        c.restore();
+        pack(); c.strokeStyle = 'rgba(10,8,8,0.85)'; c.lineWidth = 0.7; c.stroke();
+        // bedroll strapped on top
+        const bc = '#4a5038'; c.fillStyle = bc; roundRect(c, x1 - 1 * s, y0 + 0.5 * s, 5 * s, y1 - y0 - 1 * s, 2.4 * s); c.fill();
+        c.save(); roundRect(c, x1 - 1 * s, y0 + 0.5 * s, 5 * s, y1 - y0 - 1 * s, 2.4 * s); c.clip();
+        const g4 = c.createLinearGradient(x1 - 1 * s, 0, x1 + 4 * s, 0); g4.addColorStop(0, shade(bc, -0.35)); g4.addColorStop(0.5, shade(bc, 0.2)); g4.addColorStop(1, shade(bc, -0.4)); c.fillStyle = g4; c.fillRect(x1 - 1 * s, y0, 5 * s, y1 - y0);
+        c.strokeStyle = 'rgba(0,0,0,0.3)'; c.lineWidth = 0.3; for (let k = 1; k < 4; k++) { c.beginPath(); c.arc(x1 + 1.5 * s, (y0 + y1) / 2, k * 0.9 * s, 0, TAU); c.stroke(); }
+        c.restore();
+        c.strokeStyle = 'rgba(10,8,8,0.8)'; c.lineWidth = 0.6; roundRect(c, x1 - 1 * s, y0 + 0.5 * s, 5 * s, y1 - y0 - 1 * s, 2.4 * s); c.stroke();
+        c.fillStyle = '#1a1712'; c.fillRect(x1 + 0.3 * s, y0 + 0.5 * s, 1 * s, y1 - y0 - 1 * s);
+      }
     });
   }
 
-  function paintLimb(kind, d, look, rng) {
+  function paintLimb(kind, d, look, rng, noHand = false) {
     const s = d.s;
     const isArm = kind === 'ua' || kind === 'fa';
     const L = d[kind], T = d[kind + 'T'];
@@ -292,6 +386,25 @@ const BodyArt = (() => {
           if (kind === 'th' && look.cargo) { c.fillStyle = shade(cloth, -0.18); roundRect(c, L * 0.35, T * 0.05, 8 * s, T * 0.4, 1); c.fill(); }
         }
         if (isArm) { c.strokeStyle = shade(cloth, -0.4); c.lineWidth = 0.5; c.beginPath(); c.moveTo(clothTo - 1, -T / 2); c.lineTo(clothTo - 1, T / 2); c.stroke(); }
+        // sleeve cuff
+        if (kind === 'fa' && !look.zombie && clothTo > L * 0.5) { c.fillStyle = shade(cloth, -0.18); c.fillRect(clothTo - 2.2 * s, -T, 2.2 * s, T * 2); seam(c, [clothTo - 2.2 * s, -T / 2, clothTo - 2.2 * s, T / 2], cloth); }
+        // unit patch on the upper sleeve
+        if (kind === 'ua' && !look.zombie && (look.patch || look.vest === 'police') && clothTo > L * 0.45) {
+          const pc = look.vest === 'police' ? '#1c2434' : '#5a5a3e';
+          c.fillStyle = pc; c.beginPath(); c.moveTo(L * 0.16, -T * 0.3); c.lineTo(L * 0.46, -T * 0.3); c.lineTo(L * 0.46, T * 0.12); c.quadraticCurveTo(L * 0.31, T * 0.34, L * 0.16, T * 0.12); c.closePath(); c.fill();
+          c.strokeStyle = look.vest === 'police' ? '#b89a4a' : '#2e2e20'; c.lineWidth = 0.45; c.stroke();
+          c.fillStyle = look.vest === 'police' ? '#b89a4a' : '#8a8a62'; c.fillRect(L * 0.24, -T * 0.16, L * 0.14, T * 0.1);
+        }
+        // back pocket on the trousers
+        if (kind === 'th' && look.pantsType !== 'shorts' && look.shirtType !== 'gown') {
+          c.fillStyle = shade(cloth, -0.12); roundRect(c, L * 0.06, T * 0.06, L * 0.28, T * 0.38, 0.6 * s); c.fill();
+          seam(c, [L * 0.06, T * 0.06, L * 0.34, T * 0.06], cloth); seam(c, [L * 0.34, T * 0.06, L * 0.34, T * 0.44], cloth);
+        }
+        // infected: threads hanging from the torn edge
+        if (look.zombie && clothTo < L) {
+          c.strokeStyle = rgba(shade(cloth, -0.2), 0.8); c.lineWidth = 0.3;
+          for (let k = 0; k < 4; k++) { const y = rng.range(-T * 0.4, T * 0.4); c.beginPath(); c.moveTo(clothTo, y); c.quadraticCurveTo(clothTo + 1.5 * s, y + rng.range(-1, 1) * s, clothTo + rng.range(2, 4) * s, y + rng.range(-1.5, 1.5) * s); c.stroke(); }
+        }
         c.restore();
       }
       if (clothTo > 0) {
@@ -312,14 +425,18 @@ const BodyArt = (() => {
       c.strokeStyle = 'rgba(255,240,225,0.16)'; c.lineWidth = 0.7;
       c.beginPath(); c.moveTo(1 * s, -T / 2 + 0.7); c.quadraticCurveTo(L * 0.45, -T / 2 - (kind === 'th' ? 1.2 * s : 0.6 * s) + 0.7, L - 1 * s, -t1 / 2 + 0.7); c.stroke();
       if (look.hivisBand && !isArm) { c.fillStyle = 'rgba(220,220,220,0.8)'; c.fillRect(L * 0.6, -T, 1.8 * s, T * 2); }
-      if (look.blood || look.zombie) for (let i = 0; i < (look.zombie ? 2 + look.blood * 3 : look.blood * 2); i++) stain(c, rng, rng.range(0, L), rng.range(-T / 2, T / 2), rng.range(1.2, 3) * s, '#4a0808', 0.65);
+      if (look.blood || look.zombie) for (let i = 0; i < (look.zombie ? 2 + look.blood * 3 : look.blood * 2); i++) {
+        const sx = rng.range(0, L), sy = rng.range(-T / 2, T / 2);
+        stain(c, rng, sx, sy, rng.range(1.2, 3) * s, '#4a0808', 0.65);
+        if (look.zombie && rng() < 0.6) bloodRun(c, rng, sx, sy, rng.range(3, 7) * s, 1, s);
+      }
       if (kind === 'th' && look.kneepads) { c.fillStyle = '#1e1e1e'; roundRect(c, L - 5 * s, -T / 2 - 1, 7 * s, T * 0.6, 2); c.fill(); }
       if (kind === 'sh' && look.kneepads) { c.fillStyle = '#1e1e1e'; roundRect(c, -2 * s, -T / 2 - 1, 6 * s, T * 0.6, 2); c.fill(); }
       c.restore();
       limbOutline(c, L, T, t1, kind === 'th' ? 1.2 * s : kind === 'ua' ? 0.8 * s : 0.3 * s, 'rgba(10,8,8,0.85)');
 
       // ---- hand
-      if (kind === 'fa') {
+      if (kind === 'fa' && !noHand) {
         const hc = look.gloves || skin;
         c.save(); c.translate(L + 1.5 * s, 0);
         if (look.zombie && !look.gloves) {
@@ -379,7 +496,12 @@ const BodyArt = (() => {
           if (look.shoeType === 'sneaker') { c.fillStyle = 'rgba(255,255,255,0.5)'; c.fillRect(-2 * s, -9 * s, 0.7 * s, 6 * s); }
           c.fillStyle = 'rgba(0,0,0,0.6)'; for (let k = 0; k < 6; k++) c.fillRect(3 * s, -13 * s + k * 3.1 * s, 0.6 * s, 1.4 * s); // tread
           c.fillStyle = 'rgba(255,255,255,0.14)'; c.beginPath(); c.ellipse(-0.6 * s, -11.5 * s, 1.4 * s, 2.2 * s, 0.3, 0, TAU); c.fill(); // toe cap
-          if (boot) { c.strokeStyle = 'rgba(200,190,170,0.5)'; c.lineWidth = 0.4; for (let k = 0; k < 4; k++) { c.beginPath(); c.moveTo(-7 * s + k * 2 * s, -5 * s); c.lineTo(-6 * s + k * 2 * s, -3 * s); c.stroke(); } }
+          if (boot) {
+            c.strokeStyle = 'rgba(200,190,170,0.5)'; c.lineWidth = 0.4; for (let k = 0; k < 4; k++) { c.beginPath(); c.moveTo(-7 * s + k * 2 * s, -5 * s); c.lineTo(-6 * s + k * 2 * s, -3 * s); c.stroke(); }
+            c.fillStyle = 'rgba(150,140,120,0.6)'; for (let k = 0; k < 4; k++) { c.beginPath(); c.arc(-7.4 * s + k * 2 * s, -2.4 * s, 0.35 * s, 0, TAU); c.fill(); } // lace hooks
+            c.fillStyle = shade(shoe, -0.35); roundRect(c, -9.6 * s, -4.4 * s, 2.4 * s, 9.2 * s, 0.8 * s); c.fill(); // padded ankle collar
+            c.fillStyle = '#0a0908'; c.fillRect(0.4 * s, 1.4 * s, 3.2 * s, 3.4 * s); // heel block
+          }
         }
         c.restore();
       }
@@ -552,13 +674,73 @@ const BodyArt = (() => {
     });
   }
 
+  // ------------------------------------------------ weapon grip hands
+  // Drawn in the weapon's own frame (x toward the muzzle, origin at the
+  // trigger hand) so they wrap the grip and handguard at the right angle.
+  //   grip: firing hand around the pistol grip, index finger on the trigger
+  //   fore: support hand cradling the handguard from below
+  //   cup:  support hand wrapped round the firing hand (two-handed pistol)
+  function paintHands(d, look, dark) {
+    const s = d.s, k = Math.min(1.2, Math.max(0.85, s)); // hands stay in proportion to the weapon
+    const base = look.gloves || look.skin, hc = dark ? shade(base, -0.22) : base, gl = !!look.gloves;
+    const line = 'rgba(12,8,6,0.85)';
+    const finger = (c, x0, y0, x1, y1, w) => {
+      c.strokeStyle = line; c.lineWidth = w + 0.9; c.beginPath(); c.moveTo(x0, y0); c.lineTo(x1, y1); c.stroke();
+      c.strokeStyle = hc; c.lineWidth = w; c.stroke();
+      c.strokeStyle = 'rgba(255,240,225,0.2)'; c.lineWidth = w * 0.35; c.beginPath(); c.moveTo(x0, y0 - w * 0.22); c.lineTo(x1, y1 - w * 0.22); c.stroke();
+    };
+    const shadeFill = (c, y0, y1) => { const g = c.createLinearGradient(0, y0, 0, y1); g.addColorStop(0, 'rgba(255,240,225,0.2)'); g.addColorStop(0.5, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,0.38)'); c.fillStyle = g; c.fill(); };
+    const grip = bake(16 * k, 15 * k, -6.5 * k, -5.5 * k, (c) => {
+      c.save(); c.scale(k, k);
+      // back of the hand / palm wrapped round the grip
+      const palm = () => { c.beginPath(); c.moveTo(-4.4, -3.4); c.quadraticCurveTo(-0.6, -4.4, 2.8, -3.6); c.lineTo(3.4, 0.2); c.quadraticCurveTo(3.4, 4.8, 2.2, 6.6); c.quadraticCurveTo(-0.6, 7.6, -2.8, 6.4); c.quadraticCurveTo(-5.6, 2.2, -4.4, -3.4); c.closePath(); };
+      palm(); c.fillStyle = hc; c.fill(); palm(); shadeFill(c, -4, 7); palm(); c.strokeStyle = line; c.lineWidth = 0.6; c.stroke();
+      c.strokeStyle = 'rgba(0,0,0,0.25)'; c.lineWidth = 0.4; c.beginPath(); c.moveTo(-3.6, 4.6); c.quadraticCurveTo(-1.2, 2.2, -0.4, -2.6); c.stroke(); // tendon line
+      // three fingers curled round the front strap, knuckle to tip
+      for (let i = 0; i < 3; i++) { const y = 1.1 + i * 1.95; finger(c, 0.6, y, 3.9, y + 0.35, 1.7); c.fillStyle = 'rgba(255,235,220,0.25)'; c.beginPath(); c.arc(1.1, y - 0.3, 0.45, 0, TAU); c.fill(); }
+      if (gl && look.patch) { c.fillStyle = 'rgba(10,10,8,0.7)'; for (let i = 0; i < 3; i++) { c.beginPath(); roundRect(c, 0.2, 0.3 + i * 1.95, 1.4, 1.5, 0.5); c.fill(); } } // knuckle armour
+      // index finger laid along the guard onto the trigger
+      finger(c, 1.4, -1.3, 5.2, -1.0, 1.55); finger(c, 5.2, -1.0, 6.4, 0.4, 1.4);
+      // thumb along the frame
+      finger(c, -3.4, -3.3, 1.8, -3.9, 1.7);
+      if (!gl) { c.fillStyle = 'rgba(240,220,210,0.6)'; c.beginPath(); c.ellipse(1.6, -4.2, 0.6, 0.35, -0.1, 0, TAU); c.fill(); }
+      else { c.strokeStyle = 'rgba(0,0,0,0.35)'; c.lineWidth = 0.3; c.setLineDash([0.5, 0.45]); c.beginPath(); c.moveTo(-4, -2.2); c.quadraticCurveTo(-1, -3.2, 2.4, -2.6); c.stroke(); c.setLineDash([]); }
+      c.restore();
+    });
+    const fore = bake(14 * k, 14 * k, -6 * k, -7.5 * k, (c) => {
+      c.save(); c.scale(k, k);
+      // palm under the handguard, fingers curling up its near side
+      const palm = () => { c.beginPath(); c.moveTo(-4.4, -0.4); c.quadraticCurveTo(0, -1.2, 4.6, -0.2); c.quadraticCurveTo(5.2, 2.8, 3.2, 4.6); c.quadraticCurveTo(-0.6, 5.6, -4, 4.2); c.quadraticCurveTo(-5.6, 2, -4.4, -0.4); c.closePath(); };
+      palm(); c.fillStyle = hc; c.fill(); palm(); shadeFill(c, -1, 5.5); palm(); c.strokeStyle = line; c.lineWidth = 0.6; c.stroke();
+      for (let i = 0; i < 4; i++) { const x = -2.9 + i * 1.95; finger(c, x, 1.6, x + 0.5, -4.2 + Math.abs(i - 1.5) * 0.5, 1.6); }
+      finger(c, 3.8, 2.2, 5.6, 0.2, 1.6); // thumb tip showing at the front
+      c.restore();
+    });
+    const cup = bake(14 * k, 14 * k, -4 * k, -4 * k, (c) => {
+      c.save(); c.scale(k, k);
+      // fingers of the support hand wrapped over the firing hand's fingers
+      for (let i = 0; i < 4; i++) { const y = 1.4 + i * 1.75; finger(c, 1.6, y - 0.6, 5.4, y + 0.2, 1.6); }
+      finger(c, 1.2, -2.6, 6.2, -2.2, 1.5); // support thumb forward along the frame
+      c.restore();
+    });
+    return { grip, fore, cup };
+  }
+
   function get(look, d) {
     const key = JSON.stringify(look) + '|' + d.s + '|' + d.build + '|' + d.limb;
     let set = cache.get(key);
     if (set) return set;
     const rng = makeRng(hashStr(key));
     set = { torso: paintTorso(d, look, rng, false), torsoGut: paintTorso(d, look, makeRng(hashStr(key) + 1), true), head: paintHead(d, look, rng), jaw: paintJaw(d, look) };
-    for (const k of ['ua', 'fa', 'th', 'sh']) { set[k] = paintLimb(k, d, look, rng); set[k + 'B'] = darkVariant(set[k]); }
+    for (const k of ['ua', 'fa', 'th', 'sh']) {
+      const r = k === 'fa' ? makeRng(hashStr(key) + 11) : rng;
+      set[k] = paintLimb(k, d, look, r); set[k + 'B'] = darkVariant(set[k]);
+    }
+    // forearm without the hand, for when the grip hands are drawn on the weapon
+    if (!look.zombie) { // only survivors hold weapons
+      set.faN = paintLimb('fa', d, look, makeRng(hashStr(key) + 11), true); set.faNB = darkVariant(set.faN);
+      set.hands = paintHands(d, look, false); set.handsB = paintHands(d, look, true);
+    }
     set.torsoB = darkVariant(set.torso);
     cache.set(key, set);
     if (cache.size > CACHE_MAX) cache.delete(cache.keys().next().value);
