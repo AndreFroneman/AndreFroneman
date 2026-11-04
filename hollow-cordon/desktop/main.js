@@ -24,7 +24,7 @@ let win = null;
 function createWindow() {
   win = new BrowserWindow({
     width: 1280, height: 800, minWidth: 960, minHeight: 600,
-    title: 'Hollow Cordon', backgroundColor: '#07080a', show: false,
+    title: 'Hollow Cordon — Version 2', backgroundColor: '#07080a', show: false,
     icon: path.join(GAME_DIR, 'icons', 'icon-512.png'),
     autoHideMenuBar: true,
     webPreferences: {

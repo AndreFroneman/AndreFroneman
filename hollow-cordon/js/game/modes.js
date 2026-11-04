@@ -217,6 +217,12 @@ class SurvivalMode {
     if (this.cash < def.price) return 'Not enough cash';
     this.cash -= def.price; p.give(def.id, 2); Sfx.play('buy'); return true;
   }
+  buyAttachment(g, id) {
+    const a = ATTACHMENTS[id];
+    if (!a || g.owned.has(id)) return 'Owned';
+    if (this.cash < a.price) return 'Not enough cash';
+    this.cash -= a.price; g.owned.add(id); g.fit(a.slot, id); Sfx.play('buy'); return true;
+  }
   buyAmmo(type) {
     const p = this.game.player, a = AMMO[type];
     if (this.cash < a.price) return 'Not enough cash';

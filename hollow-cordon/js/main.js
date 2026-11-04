@@ -51,7 +51,7 @@ const App = {
   start(kind, opts, mapOverride) {
     this.destroyGame();
     this.lastMode = kind; this.lastOpts = opts; this.lastMapOverride = mapOverride || null;
-    if (kind === 'campaign') opts.map = CAMPAIGN[opts.chapter | 0].map;
+    if (CAMPAIGNS[kind]) opts.map = CAMPAIGNS[kind].chapters[opts.chapter | 0].map;
     const map = mapOverride || MapLib.get(opts.map) || MapLib.get('hospital');
     const err = Custom.validate(map);
     if (err) { this.toMenu(); UI.notice(err); return; }
@@ -59,7 +59,7 @@ const App = {
     UI.clear();
     this.game = new Game(deepClone(map), {
       survivor, difficulty: opts.difficulty, noPreplaced: kind === 'survival',
-      modeFactory: (g) => (kind === 'survival' ? new SurvivalMode(g, opts) : kind === 'campaign' ? new CampaignMode(g, opts) : new SandboxMode(g, opts)),
+      modeFactory: (g) => (kind === 'survival' ? new SurvivalMode(g, opts) : kind === 'campaign' ? new CampaignMode(g, opts) : kind === 'blackout' ? new BlackoutMode(g, opts) : new SandboxMode(g, opts)),
     });
     this.state = 'game';
     Input.gameFocus = true;

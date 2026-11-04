@@ -7,7 +7,7 @@
 //  soon as you are online, with the cache as the offline fallback.
 // =====================================================================
 
-const CACHE = 'hollow-cordon-v2';
+const CACHE = 'hollow-cordon-v3';
 const EXTRA = ['./', 'index.html', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-maskable-512.png', 'icons/apple-touch-icon.png'];
 
 self.addEventListener('install', (e) => {

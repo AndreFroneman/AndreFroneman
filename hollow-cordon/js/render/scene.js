@@ -11,6 +11,7 @@ const THEMES = {
   factory: { sky: ['#0a0806', '#1e1610', '#3a2618'], far: '#120e0a', mid: '#0c0a08', windows: '#d08040', moon: false, fog: '#6a5a4a', weather: 'ash', bgKind: 'industrial' },
   farm: { sky: ['#0a0a12', '#1c2030', '#3a3a40'], far: '#0e1210', mid: '#0a0d0b', windows: '#d0a050', moon: true, fog: '#70787a', weather: 'none', bgKind: 'rural' },
   tunnels: { sky: ['#000000', '#030303', '#060606'], far: '#000', mid: '#000', windows: '#000', moon: false, fog: '#3a4040', weather: 'dust', bgKind: 'none' },
+  bunker: { sky: ['#000000', '#020202', '#040404'], far: '#000', mid: '#000', windows: '#000', moon: false, fog: '#2a2e30', weather: 'dust', bgKind: 'none' },
   checkpoint: { sky: ['#06070a', '#161a1e', '#2c2a26'], far: '#0e100e', mid: '#0a0c0a', windows: '#c8c090', moon: false, fog: '#605a50', weather: 'ash', bgKind: 'military' },
 };
 

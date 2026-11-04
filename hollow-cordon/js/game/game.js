@@ -33,6 +33,7 @@ class Pickup {
       case 'grenade': p.grenades = Math.min(6, p.grenades + this.amount); g.fx.text(this.x, this.y - 30, '+1 Grenade', '#c8c890', 12); Sfx.play('pin'); break;
       case 'armor': p.armor = Math.min(100, p.armor + 50); g.fx.text(this.x, this.y - 30, '+50 Armor', '#90b0d8', 12); Sfx.play('pickup'); break;
       case 'weapon': p.give(this.weapon, 2); g.fx.text(this.x, this.y - 30, WEAPONS[this.weapon].name, '#e8d8a0', 13); Sfx.play('pickup'); break;
+      case 'battery': p.battery = Math.min(100, (p.battery || 0) + 40); g.fx.text(this.x, this.y - 30, '+40% Battery', '#d8e890', 12); Sfx.play('click', { vol: 0.7 }); Sfx.play('pickup', { vol: 0.6 }); break;
     }
     this.life = 0;
   }
@@ -48,6 +49,7 @@ class Pickup {
       case 'grenade': ctx.fillStyle = '#3a4a2a'; ctx.beginPath(); ctx.ellipse(0, -6, 5, 6, 0, 0, TAU); ctx.fill(); ctx.fillStyle = '#888'; ctx.fillRect(-1, -14, 3, 3); break;
       case 'armor': ctx.fillStyle = '#2a3446'; ctx.fillRect(-9, -14, 18, 14); ctx.fillStyle = '#1a2030'; ctx.fillRect(-6, -10, 12, 6); break;
       case 'weapon': { const gs = GunArt.get(WEAPONS[this.weapon]); ctx.drawImage(gs.full, -gs.body.w / 2, -gs.body.h, gs.body.w, gs.body.h); break; }
+      case 'battery': ctx.fillStyle = '#1c1c1c'; roundRect(ctx, -4, -13, 8, 13, 1.2); ctx.fill(); ctx.fillStyle = '#c8a830'; ctx.fillRect(-4, -13, 8, 4); ctx.fillStyle = '#888'; ctx.fillRect(-1.5, -15, 3, 2); ctx.fillStyle = 'rgba(255,255,255,0.25)'; ctx.fillRect(-3, -12, 1, 11); break;
     }
     ctx.restore();
     // glint
@@ -86,6 +88,11 @@ class Game {
       this.cam.x = ps.x; this.cam.y = ps.y - 100;
     } else { this.cam.x = this.world.w / 2; this.cam.y = (map.horizon || this.world.h - 300) - 160; }
     this.mode = opts.modeFactory ? opts.modeFactory(this) : new NullMode(this);
+    // outside Blackout the bunker maps play with their blast doors open and the power on
+    if (!this.mode.blackout) {
+      for (const pr of this.props) if (pr.blast) { pr.locked = false; pr.open = true; pr.anim = 1; }
+      for (const L of this.lights) if (L.group) L.on = true;
+    }
     if (this.mode.start) this.mode.start();
     Sfx.setReverb(this.reverb);
   }
@@ -133,7 +140,7 @@ class Game {
         if (def) { const p = new Prop(this, def, o.x, o.y, o); this.props.push(p); if (def.siren) this.lights.push({ x: o.x + p.w * 0.4, y: o.y - 2, r: 170, color: '#3050ff', int: 0.8, kind: 'emergency', flicker: 1, seed: Math.random() * 99, on: true, siren: true, halo: true }); }
         break;
       }
-      case 'light': this.lights.push({ x: o.x, y: o.y, r: o.r || 300, color: o.color || '#ffe0b0', int: o.int === undefined ? 1 : o.int, kind: o.kind || 'bulb', flicker: o.flicker || 0, clip: o.clip === undefined ? 'auto' : o.clip, shaft: o.shaft || 0, seed: Math.random() * 100, on: true, halo: o.halo }); break;
+      case 'light': this.lights.push({ x: o.x, y: o.y, r: o.r || 300, color: o.color || '#ffe0b0', int: o.int === undefined ? 1 : o.int, kind: o.kind || 'bulb', flicker: o.flicker || 0, clip: o.clip === undefined ? 'auto' : o.clip, shaft: o.shaft || 0, seed: Math.random() * 100, on: !o.off, halo: o.halo, group: o.group }); break;
       case 'fire': this.fires.push({ x: o.x, y: o.y, life: Infinity, max: Infinity, perm: true, harmless: !!o.harmless }); this.lights.push({ x: o.x, y: o.y - 30, r: o.r || 340, color: '#ff8a30', int: 1.1, kind: 'fire', flicker: 1, clip: null, seed: Math.random() * 100, on: true }); break;
       case 'pickup': this.later(0, () => this.pickups.push(new Pickup(this, o.x, o.y, o.kind || 'ammo', { ammo: o.ammo || '9mm', amount: o.amount || (o.kind === 'ammo' ? AMMO[o.ammo || '9mm'].box : 1), weapon: o.weapon || 'p9', life: Infinity, vx: 0, vy: 0 }))); break;
       case 'note': this.notes.push({ x: o.x, y: o.y, title: o.title || 'Note', text: o.text || '' }); break;
@@ -346,6 +353,7 @@ class Game {
     Lighting.glows(this, ctx, v);
     ctx.globalCompositeOperation = 'lighter';
     this.fx.drawAdditive(ctx);
+    if (this.player && !this.player.dead) this.player.drawPostLight(ctx);
     ctx.globalCompositeOperation = 'source-over';
     this.fx.drawTexts(ctx);
     if (this.mode.drawWorld) this.mode.drawWorld(ctx);

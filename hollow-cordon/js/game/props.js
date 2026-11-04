@@ -301,7 +301,8 @@ class Prop {
     this.hp = def.hp; this.maxHp = def.hp;
     this.mat = def.mat;
     this.isProp = true;
-    this.solid = !def.passable;
+    this.solid = !def.passable && !o.bg;
+    this.bg = !!o.bg; // set dressing: drawn, never collides
     this.rot = o.rot || 0;
     this.grounded = false;
     this.sleep = false;
@@ -414,12 +415,16 @@ class Door {
     this.dead = false; this.anim = this.open ? 1 : 0; this.swing = 1;
     this.label = o.label || '';
     this.id = o.id || uid();
+    // bunker blast door: indestructible, sealed until an objective opens it, slides up into the lintel
+    this.blast = !!o.blast;
+    if (this.blast) { this.w = o.w || 24; this.mat = 'metal'; this.maxHp = this.hp = 1e9; this.hint = o.hint || ''; }
   }
-  get solid() { return !this.dead && (!this.open || this.boards > 0); }
+  get solid() { if (this.blast) return this.anim < 0.7; return !this.dead && (!this.open || this.boards > 0); }
   get cx() { return this.x + this.w / 2; }
   get cy() { return this.y + this.h / 2; }
   blocksBullets() { return this.solid; }
   toggle(fromX) {
+    if (this.blast) { if (!this.open) { Sfx.play('metal_bash', { x: this.cx, y: this.cy, vol: 0.35, rate: 0.6 }); this.game.hud.toast(this.hint ? 'Blast door sealed — ' + this.hint : 'Blast door sealed'); } return; }
     if (this.dead || this.boards > 0) return;
     if (this.locked) { Sfx.play('dry', { x: this.cx, y: this.cy }); this.game.hud.toast('Locked'); return; }
     if (this.open) {
@@ -432,9 +437,21 @@ class Door {
     Sfx.play(this.open ? 'door_open' : 'door_close', { x: this.cx, y: this.cy, vol: 0.8 });
     this.game.noise(this.cx, this.cy, 350);
   }
-  update(dt) { this.anim = approach(this.anim, this.open ? 1 : 0, dt * 5); }
+  update(dt) {
+    const a0 = this.anim;
+    this.anim = approach(this.anim, this.open ? 1 : 0, dt * (this.blast ? 0.55 : 5));
+    if (this.blast && this.anim !== a0 && (this.rumbleT = (this.rumbleT || 0) - dt) <= 0) { this.rumbleT = 0.3; this.game.shake && this.game.shake(2.5); this.game.fx.debris(this.cx, this.y + this.h * (1 - this.anim), 0, 1, 'concrete', 2); }
+  }
+  // the mode opens a blast door when its objective is done
+  release() {
+    if (!this.blast || this.open) return;
+    this.locked = false; this.open = true;
+    Sfx.play('metal_bash', { x: this.cx, y: this.cy, vol: 0.9, rate: 0.45 }); Sfx.play('door_open', { x: this.cx, y: this.cy, vol: 0.9, rate: 0.5 });
+    this.game.noise(this.cx, this.cy, 1400);
+  }
   damage(dmg, x, y, type) {
     if (this.dead) return;
+    if (this.blast) return;
     if (this.boards > 0) {
       this.boardHp -= dmg;
       if (this.boardHp <= 0) {
@@ -454,7 +471,36 @@ class Door {
     }
   }
   addBoard() { if (this.dead || this.boards >= 3) return false; this.open = false; this.boards++; this.boardHp = 160; return true; }
-  draw(ctx) {
+  drawBlast(ctx, t) {
+    const x = this.x, y = this.y, w = this.w, h = this.h;
+    const vis = h * (1 - this.anim);
+    // guide rails either side
+    ctx.fillStyle = '#16181a'; ctx.fillRect(x - 5, y - 6, 5, h + 6); ctx.fillRect(x + w, y - 6, 5, h + 6);
+    ctx.fillStyle = '#2c3034'; ctx.fillRect(x - 4, y - 6, 2, h + 6); ctx.fillRect(x + w + 2, y - 6, 2, h + 6);
+    if (vis > 1) {
+      ctx.save(); ctx.beginPath(); ctx.rect(x, y, w, vis); ctx.clip();
+      const top = y + vis - h; // slab slides up into the lintel
+      const g = ctx.createLinearGradient(x, 0, x + w, 0);
+      g.addColorStop(0, '#2a2e30'); g.addColorStop(0.45, '#5a6064'); g.addColorStop(1, '#202426');
+      ctx.fillStyle = g; ctx.fillRect(x, top, w, h);
+      // hazard chevrons at the foot, ribs above
+      ctx.fillStyle = '#c8a020'; ctx.fillRect(x, top + h - 26, w, 22);
+      ctx.fillStyle = '#141414';
+      for (let k = -2; k < 6; k++) poly(ctx, [x + k * 9, top + h - 4, x + k * 9 + 5, top + h - 4, x + k * 9 + 13, top + h - 26, x + k * 9 + 8, top + h - 26]), ctx.fill();
+      ctx.fillStyle = 'rgba(0,0,0,0.35)';
+      for (let k = 0; k < 5; k++) ctx.fillRect(x + 2, top + 12 + k * 20, w - 4, 3);
+      ctx.fillStyle = 'rgba(255,255,255,0.08)'; ctx.fillRect(x + 3, top + 4, 2, h - 34);
+      ctx.strokeStyle = '#0c0e10'; ctx.lineWidth = 1; ctx.strokeRect(x + 0.5, top + 0.5, w - 1, h - 1);
+      ctx.restore();
+    }
+    // lintel + status lamp
+    ctx.fillStyle = '#1c1e20'; ctx.fillRect(x - 6, y - 10, w + 12, 10);
+    const on = this.open ? '#40ff70' : (Math.sin(t * 5) > -0.2 ? '#ff2a1e' : '#401010');
+    ctx.fillStyle = on; ctx.beginPath(); ctx.arc(x + w / 2, y - 5, 2.6, 0, TAU); ctx.fill();
+    ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.6; ctx.drawImage(Lighting.radial(this.open ? '#40ff70' : '#ff3020'), x + w / 2 - 18, y - 23, 36, 36); ctx.restore();
+  }
+  draw(ctx, t = 0) {
+    if (this.blast) { this.drawBlast(ctx, t); return; }
     const x = this.x, y = this.y, w = this.w, h = this.h;
     // frame
     ctx.fillStyle = '#1a1612'; ctx.fillRect(x - 3, y - 4, w + 6, 4);

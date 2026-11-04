@@ -349,6 +349,138 @@ defWeapon({
   },
 });
 
+
+// ===== ATTACHMENT-READY & SUPPRESSED GUNS =====
+defWeapon({
+  id: 'wraith', name: 'Wraith 9 SD', cat: 'pistol', dmg: 24, rpm: 440, mode: 'semi', mag: 12, ammo: '9mm', reload: 1.4,
+  spread: 0.028, aimSpread: 0.009, bloom: 0.018, kick: 0.045, back: 2.5, shake: 1, pen: 12, range: 650, force: 120,
+  hold: 'pistol', shell: 'pistol', flash: 0.12, noise: 170, price: 650, unlock: 2, startReserve: 4, integral: ['suppressor'], sndVol: 0.55,
+  desc: 'Integrally suppressed 9mm. A cough and a click — the infected barely hear it, and it barely lights the dark.',
+  snd: { crack: [1600, 0.004, 0.25], blast: [850, 0.02, 0.45], thump: [150, 0.03, 0.4], tail: [650, 0.07, 0.12], drive: 1.5, len: 0.32, mech: 1 },
+  art: {
+    hand: [2, 3], muzzle: [40, -4.6], eject: [10, -7], len: 40,
+    parts: [['p', [-1, -1, 7, -1, 5.5, 12, -3.5, 12], GCOL.poly], ['r', -3.5, 11, 8, 2, GCOL.steelD], ['r', -0.5, -2.5, 19, 3, GCOL.polyL], ['a', 9.5, 1.2, 3.2, GCOL.poly],
+      ['r', -2.5, -8, 22, 6, GCOL.steel, 1], ['r', 19, -7.8, 21, 5.6, '#2a2c2e', 2.6], ['l', 24, -7.4, 24, -2.6, 0.5, 'rgba(0,0,0,0.45)'], ['l', 30, -7.4, 30, -2.6, 0.5, 'rgba(0,0,0,0.45)'], ['l', 36, -7.4, 36, -2.6, 0.5, 'rgba(0,0,0,0.45)'],
+      ['r', 17, -9, 1.8, 1.4, GCOL.steelD], ['r', -1.8, -9, 2.5, 1.4, GCOL.steelD]],
+    mag: [['r', -2.5, 10.5, 7.2, 2.4, GCOL.steelD]],
+  },
+});
+defWeapon({
+  id: 'lantern', name: 'Lantern .45 Compact', cat: 'pistol', dmg: 40, rpm: 340, mode: 'semi', mag: 10, ammo: '.45', reload: 1.45,
+  spread: 0.03, aimSpread: 0.011, bloom: 0.024, kick: 0.1, back: 4.5, shake: 2.2, pen: 13, range: 640, force: 200,
+  hold: 'pistol', shell: 'pistol', flash: 0.85, noise: 1100, price: 550, unlock: 1, startReserve: 3, integral: ['light'],
+  desc: 'Compact .45 with a light built into the frame. Point it and see.',
+  snd: { crack: [2200, 0.008, 0.9], blast: [2600, 0.06, 1.1], thump: [92, 0.085, 1], tail: [1300, 0.3, 0.4], drive: 2.6, len: 0.8, mech: 0.25 },
+  art: {
+    hand: [2, 3], muzzle: [20.5, -4.8], eject: [10, -7.5], len: 21,
+    parts: [['p', [-1, -1, 7, -1, 5.5, 10.5, -3, 10.5], GCOL.poly], ['r', -3, 9.5, 7.6, 2, GCOL.steelD], ['r', -0.5, -2.5, 17.5, 3, GCOL.polyL], ['a', 9.5, 1.2, 3, GCOL.poly],
+      ['r', -2.5, -8.2, 23, 6, GCOL.steelL, 1], ['r', 10.5, 0.2, 9.5, 3.8, '#1c1c1c', 1.2], ['c', 19.6, 2.1, 1.4, '#ddd'],
+      ['r', 18.8, -9.2, 1.8, 1.4, GCOL.steelD], ['r', -1.8, -9.2, 2.5, 1.4, GCOL.steelD]],
+    mag: [['r', -2.4, 9.2, 7, 2.2, GCOL.steelD]],
+  },
+});
+defWeapon({
+  id: 'nightjar', name: 'Nightjar SD', cat: 'smg', dmg: 22, rpm: 800, mode: 'auto', mag: 30, ammo: '9mm', reload: 2.1,
+  spread: 0.034, aimSpread: 0.013, bloom: 0.008, bloomMax: 0.065, kick: 0.026, back: 2, shake: 1, pen: 14, range: 600, force: 105,
+  shell: 'pistol', flash: 0.16, noise: 200, price: 1700, unlock: 3, startReserve: 3, integral: ['suppressor'], sndVol: 0.6,
+  desc: 'Integrally suppressed 9mm sub-gun. Full-auto in a whisper; almost no flash to give you away.',
+  snd: { crack: [1500, 0.004, 0.25], blast: [800, 0.02, 0.5], thump: [140, 0.03, 0.45], tail: [600, 0.06, 0.12], drive: 1.6, len: 0.3, mech: 0.9 },
+  art: {
+    hand: [1, 3], fore: [30, -1], muzzle: [58, -5], eject: [10, -8.5], stock: [-26, -1], len: 58,
+    parts: [['r', -24, -5, 18, 2, GCOL.steelD], ['r', -26, -6.5, 3, 9, GCOL.poly], ['r', -6, -8, 30, 7, GCOL.steel, 1], ['r', -4, -10.5, 26, 2.8, GCOL.steelD],
+      ['p', [-1, -1, 5, -1, 3.5, 10, -3.5, 10], GCOL.poly], ['a', 7, 1.5, 3, GCOL.poly], ['r', 23, -8.8, 35, 7.4, '#2a2c2e', 3],
+      ['r', 4, -12.6, 3, 2.5, GCOL.steelD], ['r', 33, -12.2, 3, 3.6, GCOL.steelD]],
+    mag: [['p', [8, -1, 13, -1, 14, 6, 15, 13, 11, 14, 10, 6], GCOL.steelD]],
+  },
+});
+defWeapon({
+  id: 'halberd', name: 'Halberd 5.56 Carbine', cat: 'rifle', dmg: 32, rpm: 780, mode: 'auto', mag: 30, ammo: '5.56', reload: 2.0,
+  spread: 0.03, aimSpread: 0.009, bloom: 0.01, bloomMax: 0.075, kick: 0.038, back: 4, shake: 2, pen: 34, range: 1100, force: 160,
+  flash: 1, noise: 1400, price: 2400, unlock: 4, startReserve: 2, weight: 0.93,
+  desc: 'Flat-top carbine with rail from end to end. Takes every attachment on the bench.',
+  snd: { crack: [3500, 0.009, 1.05], blast: [2500, 0.075, 1.15], thump: [80, 0.09, 1.1], tail: [1150, 0.45, 0.45], drive: 2.9, len: 1.0, echo: [0.18, 0.2], mech: 0.15 },
+  art: {
+    hand: [0, 3], fore: [32, 0], muzzle: [62, -6.2], eject: [8, -8.8], stock: [-30, 0], len: 62,
+    parts: [['p', [-30, -6, -20, -7, -16, -2, -16, 2, -30, 4], GCOL.poly], ['r', -30.8, -6.4, 2.2, 10.8, GCOL.rubber], ['r', -16, -5.5, 11, 3, GCOL.steelD],
+      ['r', -6, -6, 24, 6, GCOL.steel], ['r', -6, -10.5, 28, 4.8, GCOL.steelD], ['r', 22, -10.2, 26, 8, GCOL.polyL, 1.2], ['r', 48, -7.6, 10, 2.2, GCOL.steelD], ['r', 57, -8.2, 5, 3.4, GCOL.steelD],
+      ['p', [-1, 0, 5, 0, 3, 10, -3, 10], GCOL.poly], ['a', 4, 1.5, 3, GCOL.steel], ['r', 44, -13.6, 2, 3.2, GCOL.steelD]],
+    mag: [['p', [7, 0, 13, 0, 14.5, 12, 8.5, 13], GCOL.steelD]],
+  },
+});
+defWeapon({
+  id: 'cerberus', name: 'Cerberus Tactical 12', cat: 'shotgun', dmg: 15, pellets: 8, rpm: 260, mode: 'semi', mag: 8, ammo: '12g', reload: 2.2,
+  spread: 0.068, aimSpread: 0.052, bloom: 0.02, kick: 0.12, back: 7, shake: 5, pen: 6, range: 360, falloff: 0.28,
+  force: 90, dismember: 1.4, gib: 1.5, shell: 'shotgun', flash: 1.4, noise: 1500, price: 2600, unlock: 5, startReserve: 3, weight: 0.92,
+  desc: 'Box-fed semi-auto shotgun on a railed chassis. Fast mag changes; takes lights, lasers, optics and a grip.',
+  snd: { crack: [1900, 0.013, 0.8], blast: [1550, 0.13, 1.35], thump: [60, 0.16, 1.45], tail: [880, 0.6, 0.58], drive: 3.8, len: 1.2, echo: [0.22, 0.24] },
+  art: {
+    hand: [0, 3], fore: [30, 1], muzzle: [56, -5.4], eject: [10, -8], stock: [-28, 0], len: 56,
+    parts: [['p', [-28, -5, -8, -6, -8, 2, -27, 5], GCOL.poly], ['r', -28.6, -5.6, 2.4, 10.8, GCOL.rubber], ['r', -8, -9, 32, 9, GCOL.steel, 1.2], ['r', 24, -8.4, 18, 7, GCOL.polyL, 1.2],
+      ['r', 42, -7.2, 12, 2.8, GCOL.steelD], ['r', 53, -8, 3.6, 4, GCOL.steelD], ['p', [-1, 0, 5, 0, 3, 10, -3, 10], GCOL.poly], ['a', 4, 1.5, 3, GCOL.poly], ['r', 38, -11.4, 2, 2.4, GCOL.steelD]],
+    mag: [['p', [8, 0, 15, 0, 15.5, 11, 8.5, 11.5], GCOL.steelD]],
+  },
+});
+defWeapon({
+  id: 'specter', name: 'Specter 7.62 DMR', cat: 'battle', dmg: 80, rpm: 300, mode: 'semi', mag: 15, ammo: '.308', reload: 2.4,
+  spread: 0.02, aimSpread: 0.004, bloom: 0.03, kick: 0.1, back: 6, shake: 3.5, pen: 60, range: 1500, force: 280, dismember: 1.4, gib: 1.3,
+  flash: 1.2, noise: 1700, price: 3600, unlock: 6, startReserve: 2, weight: 0.9,
+  desc: 'Railed marksman rifle with a cheek riser. Threaded for a suppressor and built for optics.',
+  snd: { crack: [3200, 0.011, 1.2], blast: [2200, 0.09, 1.3], thump: [68, 0.12, 1.3], tail: [980, 0.6, 0.52], drive: 3.2, len: 1.2, echo: [0.22, 0.22], mech: 0.2 },
+  art: {
+    hand: [0, 3], fore: [32, 0], muzzle: [70, -5.8], eject: [8, -9], stock: [-34, 1], len: 70,
+    parts: [['p', [-34, -5, -10, -7, -6, 2, -32, 7], GCOL.poly], ['r', -34.6, -5.4, 2.6, 12.2, GCOL.rubber], ['r', -20, -8.6, 8, 2.2, GCOL.poly],
+      ['r', -8, -9.5, 32, 8.5, GCOL.steel, 1], ['r', 24, -9, 26, 7.4, GCOL.polyL, 1.4], ['r', 50, -6.8, 16, 2.4, GCOL.steelD], ['r', 65, -7.8, 5, 4.2, GCOL.steelD],
+      ['p', [-1, 0, 5, 0, 3, 10, -3, 10], GCOL.poly], ['a', 4, 1.5, 3, GCOL.steel]],
+    mag: [['p', [8, -1, 15, -1, 15.5, 10, 8.5, 10.5], GCOL.steelD]],
+  },
+});
+
+// ---------------------------------------------------------------- attachments
+// Bought per weapon in the supply cache; one per slot. effDef() layers the
+// fitted attachments over the base weapon so every system (firing, noise,
+// lighting, reloads, HUD) reads the modified numbers through gun.def.
+const ATTACHMENTS = {
+  suppressor: { slot: 'muzzle', name: 'Suppressor', price: 450, desc: 'Quiet shots and almost no muzzle flash. Slightly less damage and range.' },
+  light: { slot: 'rail', name: 'Weapon light', price: 300, desc: 'Bright beam along the barrel (toggle with the flashlight key). Drains the battery faster in Blackout.' },
+  laser: { slot: 'rail', name: 'Laser sight', price: 350, desc: 'Red beam and dot where the round goes. 30% tighter hip fire.' },
+  reddot: { slot: 'optic', name: 'Red-dot sight', price: 400, desc: '25% tighter aimed fire.' },
+  scope: { slot: 'optic', name: '4× scope', price: 650, desc: 'Aiming looks much further down range; aimed spread halved.' },
+  extmag: { slot: 'mag', name: 'Extended magazine', price: 500, desc: '+50% rounds per magazine; reloads 15% slower.' },
+  grip: { slot: 'grip', name: 'Vertical foregrip', price: 300, desc: '25% less recoil, 20% less bloom.' },
+};
+const ATT_SLOTS = ['muzzle', 'rail', 'optic', 'mag', 'grip'];
+const SLOT_LABEL = { muzzle: 'Muzzle', rail: 'Rail', optic: 'Optic', mag: 'Magazine', grip: 'Grip' };
+function slotsFor(def) {
+  if (def.cat === 'melee') return [];
+  if (def.slots) return def.slots;
+  const gs = GunArt.get(def), integral = def.integral || [], out = [];
+  const revolver = def.reloadType === 'cyl', breakAction = def.reloadType === 'break';
+  if (!revolver && def.cat !== 'shotgun' && def.cat !== 'mg' && !integral.includes('suppressor')) out.push('muzzle');
+  if (!revolver && !breakAction && !integral.includes('light')) out.push('rail');
+  if (!revolver && !breakAction && def.cat !== 'pistol' && !gs.hasOptic && !def.scope) out.push('optic');
+  if (gs.mag && gs.mag.oy > -8 && def.reloadType === 'mag' && def.cat !== 'mg') out.push('mag');
+  if (gs.fore && !breakAction && def.cat !== 'pistol' && def.cat !== 'sniper' && def.mode !== 'pump') out.push('grip');
+  return out;
+}
+const SUPP_LEN = { pistol: 9, smg: 12 };
+function effDef(base, att) {
+  const ids = Object.values(att || {}).filter(Boolean).concat(base.integral || []);
+  if (!ids.length) return base;
+  const e = Object.create(base), has = (k) => ids.includes(k), integral = base.integral || [];
+  if (has('suppressor')) {
+    e.suppressed = true;
+    if (!integral.includes('suppressor')) { e.noise = base.noise * 0.3; e.flash = base.flash * 0.28; e.dmg = base.dmg * 0.94; e.range = base.range * 0.92; e.sndKey = 'gun_' + base.id + '_s'; e.sndVol = 0.6; e.suppLen = SUPP_LEN[base.cat] || 15; }
+  }
+  if (has('extmag')) { e.mag = Math.round(base.mag * 1.5); e.reload = base.reload * 1.15; }
+  if (has('grip')) { e.kick = base.kick * 0.75; e.bloom = base.bloom * 0.8; }
+  if (has('laser')) { e.spread = base.spread * 0.7; e.laser = true; }
+  if (has('light')) e.light = true;
+  if (has('reddot')) { e.aimSpread = base.aimSpread * 0.75; e.optic = 'reddot'; }
+  if (has('scope')) { e.aimSpread = base.aimSpread * 0.5; e.optic = 'scope'; e.scope = true; }
+  e.att = Object.assign({}, att);
+  return e;
+}
+
 // ---------------------------------------------------------------- detail pass
 // Extra details drawn over each weapon's silhouette (same coordinates as
 // its art.parts): serrations, ejection ports, rails, vents, pins, screws,
@@ -377,6 +509,12 @@ const GUN_DETAIL = {
   palehorse: [['port', 4, -8.2, 7, 2], ['screw', -4.5, -2.8, 0.6], ['screw', 30, 0, 0.55], ['turret', 7.2, -20.6, 4, 3.1], ['turret', 11.6, -12.8, 2.8, 1.6]],
   ironwake: [['rail', -4, -14.6, 26], ['port', 20, -9.4, 9, 2.6], ['vents', 85, -8.8, 7.5, 3, 2], ['pin', 0, -4, 0.6], ['pin', 30, -4, 0.6], ['pin', 40, 0, 0.9], ['turret', 7.5, -22.6, 4.2, 3.1], ['turret', 12, -14.4, 3, 1.6]],
   brushfire: [['rail', -2, -13.6, 22], ['vents', 33.5, -7, 15, 2.4, 5], ['port', 12, -2.4, 8, 1.8], ['pin', 0, -4, 0.6], ['pin', 26, -4, 0.6], ['lever', 28, -9, 31.5, -10.5, 1]],
+  wraith: [['port', 8.5, -7.4, 6, 2.2], ['serr', -1.5, -7.6, 4.5, 4, 5], ['lever', 3.2, -2.4, 8.2, -2.7, 0.8], ['pin', 4.6, 0.6, 0.5]],
+  lantern: [['port', 8.5, -7.6, 6, 2.2], ['serr', -1.6, -7.8, 4.2, 4, 5], ['lever', 3, -2.6, 8, -2.9, 0.8], ['screw', 13, 2, 0.5]],
+  nightjar: [['port', 10, -7.2, 7, 2.2], ['lever', 19.5, -11, 22.5, -12, 0.8], ['pin', 2, -2.8, 0.5], ['pin', 16, -2.8, 0.5], ['vents', 26, -7.8, 28, 1.6, 7]],
+  halberd: [['rail', -5, -10.6, 52], ['vents', 24, -7.2, 22, 2, 6], ['port', 8, -8.8, 7, 2.2], ['lever', -6, -9.6, -9.5, -9.8, 0.9], ['pin', 1, -4, 0.5], ['pin', 13, -4, 0.5], ['vents', 57.4, -7.6, 4, 2.2, 2]],
+  cerberus: [['rail', -6, -9, 28], ['vents', 26, -6.8, 14, 2, 4], ['port', 8, -8.2, 8, 2.4], ['lever', 22, -4.2, 26, -4.2, 0.9], ['pin', 0, -4, 0.55]],
+  specter: [['rail', -7, -9.9, 56], ['vents', 26, -6.4, 20, 2.2, 5], ['port', 8, -9, 8, 2.4], ['lever', 24, -8.6, 28.5, -10.6, 0.9], ['pin', 0, -4, 0.55], ['pin', 20, -4, 0.55], ['vents', 65.5, -7.2, 4, 2.6, 2]],
   grinder: [['rail', -2, -15, 26], ['port', 14, -2.6, 9, 1.8], ['pin', 0, -5, 0.6], ['pin', 30, -5, 0.6], ['pin', 58, -3, 0.9], ['lever', 33, -10, 36.5, -11.6, 1]],
 };
 
@@ -394,7 +532,7 @@ const GunArt = (() => {
     [GCOL.poly]: 'poly', [GCOL.polyL]: 'poly', '#1c1c1c': 'poly', '#1e1e1e': 'rubber', '#3a3d33': 'poly', '#3f4436': 'poly', '#6a7466': 'poly', '#6a6048': 'poly', '#4a4c37': 'paint', [GCOL.olive]: 'paint', [GCOL.tan]: 'poly',
     [GCOL.wood]: 'wood', [GCOL.woodD]: 'wood', [GCOL.woodL]: 'wood',
     [GCOL.rubber]: 'rubber', [GCOL.brass]: 'brass', '#8a1a14': 'paint', [GCOL.red]: 'paint',
-    '#3a6a7a': 'glass', '#4a7a8a': 'glass',
+    '#3a6a7a': 'glass', '#4a7a8a': 'glass', '#2a2c2e': 'paint',
   };
   const matOf = (col) => (typeof col === 'string' && col[0] === '#' ? MAT[col] || 'steel' : 'none');
   function path(c, p) {
@@ -637,6 +775,20 @@ const GunArt = (() => {
       top = Math.min(top, ...ys);
     }
     out.sightH = top === Infinity ? 6 : a.hand[1] - top - 1.2;
+    out.hasOptic = a.parts.some((p) => (p[0] === 'r' ? p[5] : p[2]) === '#3a6a7a' || (p[0] === 'r' ? p[5] : p[2]) === '#4a7a8a');
+    out.top = top === Infinity ? -6 : top - a.hand[1]; // receiver top relative to the hand
+    // underside of the gun at a given x (hand-relative), ignoring grips and magazines hanging below
+    out.bottomAt = (x) => {
+      let b = -Infinity;
+      for (const p of a.parts) {
+        if (p[0] !== 'r' && p[0] !== 'p') continue;
+        const xs = p[0] === 'r' ? [p[1], p[1] + p[3]] : p[1].filter((_, i) => i % 2 === 0), ys = p[0] === 'r' ? [p[2], p[2] + p[4]] : p[1].filter((_, i) => i % 2 === 1);
+        const ax = x + a.hand[0];
+        if (ax < Math.min(...xs) || ax > Math.max(...xs) || Math.max(...ys) > a.hand[1] + 1.5) continue;
+        b = Math.max(b, Math.max(...ys));
+      }
+      return b === -Infinity ? null : b - a.hand[1];
+    };
     out.pumpTravel = a.pump ? a.pump[1] - a.pump[0] : 0;
     // icon for HUD (silhouette)
     const ic = makeCanvas(out.body.cv.width, out.body.cv.height), icc = ic.getContext('2d');
@@ -658,13 +810,22 @@ const GunArt = (() => {
 
 // Generate gunshot sounds for all firearms
 function genWeaponSounds() {
-  for (const w of WEAPON_LIST) if (w.snd) Sfx.genGun('gun_' + w.id, w.snd);
+  for (const w of WEAPON_LIST) {
+    if (!w.snd) continue;
+    Sfx.genGun('gun_' + w.id, w.snd);
+    if (slotsFor(w).includes('muzzle')) { // suppressed variant: the bang becomes a thud and a hiss
+      const n = w.snd, k = (v, a, b, c) => (v ? [v[0] * a, v[1] * b, v[2] * c] : undefined);
+      Sfx.genGun('gun_' + w.id + '_s', { crack: k(n.crack, 0.55, 0.5, 0.3), blast: k(n.blast, 0.38, 0.4, 0.45), thump: k(n.thump, 1.3, 0.5, 0.45), tail: k(n.tail, 0.5, 0.2, 0.15), drive: 1.6, len: 0.4, mech: Math.max(0.6, n.mech || 0) });
+    }
+  }
 }
 
 // runtime state for a carried weapon
 class GunState {
   constructor(def) {
-    this.def = def;
+    this.base = def;
+    this.att = {}; this.owned = new Set(); // fitted per slot / bought for this gun
+    this.def = effDef(def, this.att);       // built-in features (integral suppressor / light) apply from the start
     this.mag = def.mag || 0;
     this.cool = 0;
     this.cycle = 0;        // pump / bolt action timer
@@ -676,5 +837,11 @@ class GunState {
     this.bloom = 0;
     this.chamberEmpty = false;
     this.burstLeft = 0;
+  }
+  fit(slot, id) {
+    if (id && !ATTACHMENTS[id]) return;
+    this.att[slot] = id || null;
+    this.def = effDef(this.base, this.att);
+    if (this.mag > this.def.mag) this.mag = this.def.mag;
   }
 }

@@ -233,7 +233,7 @@ if (scenario === 'all' || scenario === 'gamepad') {
   if (f0 !== 'CAMPAIGN') throw new Error('pad focus did not land on CAMPAIGN: ' + f0);
   await btn(13);
   const f1 = await page.evaluate(() => document.activeElement && document.activeElement.textContent);
-  if (f1 !== 'SURVIVAL') throw new Error('d-pad down did not move focus: ' + f1);
+  if (f1 !== 'BLACKOUT') throw new Error('d-pad down did not move focus: ' + f1);
   await btn(12);
   await btn(0); await sleep(200);
   if (!(await page.evaluate(() => !!document.querySelector('.panel h2') && document.querySelector('.panel h2').textContent.startsWith('CAMPAIGN')))) throw new Error('A did not open campaign menu');
@@ -267,6 +267,155 @@ if (scenario === 'all' || scenario === 'gamepad') {
   if (await page.evaluate(() => !!UI.pauseEl)) throw new Error('B did not resume');
   console.log('gamepad OK', JSON.stringify({ moved: Math.round(x1 - x0), fired: m0 - m1, switchedTo: w, jumped: air, prompt: lbl }));
   await page.evaluate(() => { window._pad = null; Input.pad.using = false; });
+}
+if (scenario === 'all' || scenario === 'blackout') {
+  // Blackout: menu -> new escape -> three bunker levels driven through their objectives -> ending
+  await page.evaluate(() => { BlackoutSave.clear(); App.toMenu(); });
+  await sleep(300);
+  await page.click('.menu button:has-text("BLACKOUT")');
+  await page.click('button:has-text("BEGIN ESCAPE")');
+  for (let lv = 0; lv < 3; lv++) {
+    await page.waitForSelector('.brief button:has-text("BEGIN")', { timeout: 8000 });
+    if (lv === 0) await snap('20-blackout-briefing');
+    await page.click('.brief button:has-text("BEGIN")');
+    await sleep(300);
+    const s0 = await page.evaluate(() => {
+      const g = App.game, m = g.mode, p = g.player;
+      p.god = true;
+      return { dark: m.blackout && g.ambient.level < 0.05, sealed: g.props.filter((q) => q.blast).every((q) => q.solid), lockers: m.lockers.length, gun: p.gun.def.cat, light: p.flashlight, title: m.ch.title };
+    });
+    if (!s0.dark || !s0.sealed || s0.lockers < 2 || s0.gun === 'melee' || !s0.light) throw new Error('blackout level start wrong: ' + JSON.stringify(s0));
+    if (lv === 0) {
+      // supply locker opens the shop with batteries for sale; battery drains while the light is on
+      const lk = await page.evaluate(() => {
+        const g = App.game, m = g.mode, p = g.player, k = m.lockers[0];
+        p.x = k.prop.x + k.prop.w / 2; p.y = k.prop.y + k.prop.h; p.vx = p.vy = 0;
+        return true;
+      });
+      await sleep(250);
+      await page.keyboard.press('KeyE');
+      await sleep(250);
+      const shop = await page.evaluate(() => ({ open: UI.shopOpen, bat: [...document.querySelectorAll('.shop .item-t')].some((e) => /Battery/.test(e.textContent)), bench: !!document.querySelector('.shop .bench') }));
+      if (!shop.open || !shop.bat || !shop.bench) throw new Error('supply locker shop wrong: ' + JSON.stringify(shop));
+      await snap('21-blackout-locker');
+      await page.evaluate(() => UI.closeShop());
+      await page.keyboard.press('KeyN');
+      const b0 = await page.evaluate(() => App.game.player.battery);
+      await sleep(1500);
+      const b1 = await page.evaluate(() => App.game.player.battery);
+      if (!(b1 < b0 - 0.5)) throw new Error(`battery did not drain (${b0} -> ${b1})`);
+      await snap('22-blackout-dark');
+    } else await page.keyboard.press('KeyN');
+    await sleep(300);
+    for (let guard = 0; guard < 40; guard++) {
+      const st = await page.evaluate(() => { const m = App.game.mode; return m.over ? null : m.stage && { type: m.stage.type, i: m.stageI, unlock: m.stage.unlock || null }; });
+      if (!st) break;
+      if (st.type === 'collect') {
+        const n = await page.evaluate(() => App.game.mode.items.length);
+        for (let k = 0; k < n; k++) {
+          await page.evaluate((k) => { const g = App.game, it = g.mode.items[k]; g.player.x = it.x; g.player.y = it.y; g.player.vx = g.player.vy = 0; for (const z of g.zombies.slice()) z.die({ cause: 'test' }); }, k);
+          await sleep(250);
+          await page.keyboard.press('KeyE');
+          await sleep(150);
+          if (!(await page.evaluate((k) => App.game.mode.items[k].taken, k))) throw new Error(`${s0.title}: could not pick up objective item ${k}`);
+        }
+      } else if (st.type === 'reach') {
+        await page.evaluate(() => { const g = App.game, s = g.mode.stage; g.player.x = s.x; g.player.y = s.y; g.player.vx = g.player.vy = 0; });
+        await sleep(400);
+      } else if (st.type === 'hold') {
+        await page.evaluate(() => { const g = App.game, s = g.mode.stage; g.player.x = s.x; g.player.y = s.y; g.player.vx = g.player.vy = 0; for (const z of g.zombies.slice()) z.die({ cause: 'test' }); });
+        await sleep(250);
+        await page.keyboard.down('KeyE');
+        await sleep(600);
+        if (!(await page.evaluate(() => App.game.mode.holdP > 0.2))) throw new Error(`${s0.title}: hold objective did not progress`);
+        await page.evaluate(() => { const m = App.game.mode; m.holdP = m.stage.secs - 0.2; });
+        await sleep(500);
+        await page.keyboard.up('KeyE');
+      } else if (st.type === 'survive') {
+        await page.evaluate(() => { App.game.mode.surviveT = 0.6; });
+        await sleep(900);
+      } else if (st.type === 'kill') {
+        await page.evaluate(() => { for (const z of App.game.zombies.slice()) z.die({ cause: 'test' }); });
+        await sleep(300);
+      }
+      const after = await page.evaluate(() => App.game.mode.stageI);
+      if (after === st.i) throw new Error(`${s0.title}: stage ${st.i} (${st.type}) did not advance`);
+      if (st.unlock) {
+        await sleep(2600);
+        const open = await page.evaluate((id) => { const d = App.game.props.find((q) => q.blast && q.id === id); return d && !d.solid; }, st.unlock);
+        if (!open) throw new Error(`${s0.title}: blast door ${st.unlock} did not open`);
+      }
+    }
+    await sleep(2600);
+    if (lv < 2) {
+      await page.waitForSelector('.gameover button:has-text("LEVEL")', { timeout: 5000 });
+      const sv = await page.evaluate(() => BlackoutSave.load());
+      if (sv.unlocked !== lv + 1 || !sv.loadout || sv.loadout.battery === undefined) throw new Error('blackout save not updated after level ' + (lv + 1));
+      await page.click('.gameover button:has-text("LEVEL")');
+    } else {
+      await page.waitForSelector('.ending', { timeout: 5000 });
+      await snap('23-blackout-ending');
+      if (!(await page.evaluate(() => BlackoutSave.load().completed))) throw new Error('blackout not marked completed');
+    }
+    console.log('blackout level', lv + 1, s0.title, 'OK');
+  }
+  // outside Blackout the bunker maps play open and powered
+  const sv = await page.evaluate(() => { App.start('survival', { map: 'bunker_gate', survivor: 'brandt', difficulty: 'normal' }); const g = App.game; return g.props.filter((q) => q.blast).every((q) => !q.solid) && g.lights.filter((l) => l.group).every((l) => l.on); });
+  if (!sv) throw new Error('bunker map in survival should have open blast doors and power');
+  console.log('blackout OK');
+}
+if (scenario === 'all' || scenario === 'attachments') {
+  // workbench: buy + fit attachments, stats change through the effective def, they survive a save round-trip
+  const r = await page.evaluate(() => {
+    App.start('survival', { map: 'police', survivor: 'brandt', difficulty: 'normal' });
+    const g = App.game, m = g.mode, p = g.player;
+    m.cash = 99999;
+    const gun = p.give('halberd', 4); p.selectId('halberd');
+    const base = { noise: gun.def.noise, spread: gun.def.spread, mag: gun.def.mag, kick: gun.def.kick };
+    const slots = slotsFor(gun.base);
+    const bought = ['suppressor', 'laser', 'reddot', 'extmag', 'grip'].map((id) => m.buyAttachment(gun, id));
+    const eff = { noise: gun.def.noise, spread: gun.def.spread, mag: gun.def.mag, kick: gun.def.kick, laser: !!gun.def.laser, optic: !!gun.def.optic, supp: !!gun.def.suppressed, snd: gun.def.sndKey };
+    const L = Loadout.capture(p);
+    p.weapons = []; Loadout.apply(p, L);
+    const back = p.weapons.find((w) => w.def.id === 'halberd');
+    const integral = ['wraith', 'lantern', 'nightjar'].map((id) => { const w = p.give(id, 1); return id + ':' + (w.def.suppressed ? 'S' : '') + (w.def.light ? 'L' : ''); });
+    return { slots, bought, base, eff, restored: back && Object.values(back.att).filter(Boolean).length, integral };
+  });
+  if (r.bought.some((b) => b !== true)) throw new Error('attachment purchase failed: ' + JSON.stringify(r.bought));
+  if (!(r.eff.noise < r.base.noise && r.eff.spread < r.base.spread && r.eff.mag > r.base.mag && r.eff.kick < r.base.kick && r.eff.laser && r.eff.optic && r.eff.supp)) throw new Error('attachment stats wrong: ' + JSON.stringify(r));
+  if (r.restored !== 5) throw new Error('attachments lost in save round-trip: ' + r.restored);
+  if (r.integral.join() !== 'wraith:S,lantern:L,nightjar:S') throw new Error('integral attachments wrong: ' + r.integral);
+  await page.mouse.move(980, 380); await page.mouse.down(); await sleep(500); await page.mouse.up();
+  await snap('24-attachments');
+  console.log('attachments OK', JSON.stringify({ slots: r.slots, eff: r.eff }));
+}
+if (scenario === 'all' || scenario === 'windows') {
+  // regression: climbing through a window must never teleport — the path is continuous and lands on a floor
+  let tested = 0, refused = 0;
+  for (const map of ['hospital', 'streets', 'police', 'farm']) {
+    const n = await page.evaluate((map) => { App.start('sandbox', { map, survivor: 'brandt', difficulty: 'normal', weapons: ['p9'], types: ['walker'], autoSpawn: false, infiniteAmmo: true, god: true, startCount: 0 }); App.game.zombies.length = 0; App.game.aiFrozen = true; return App.game.props.filter((q) => q.isWindow).length; }, map);
+    for (let wi = 0; wi < n; wi++) for (const side of [-1, 1]) {
+      await page.evaluate(([wi, side]) => {
+        const g = App.game, p = g.player, w = g.props.filter((q) => q.isWindow)[wi];
+        w.glass = 0; w.boards = 0; w.boardHp = 0;
+        p.x = w.cx + side * (w.w / 2 + 24); p.y = w.y + w.h - 2; p.vx = 0; p.vy = 0; p.vaulting = null; p.onLadder = null;
+        window._w = w; window._side = side;
+      }, [wi, side]);
+      await sleep(450);
+      const label = await page.evaluate(() => App.game.player.interactTarget && App.game.player.interactTarget.label);
+      if (!label || !label.startsWith('Climb')) { refused++; continue; }
+      await page.keyboard.press('KeyE');
+      const path = [];
+      for (let i = 0; i < 14; i++) { await sleep(80); path.push(await page.evaluate(() => [App.game.player.x, App.game.player.y, App.game.player.grounded])); }
+      const r = await page.evaluate(() => ({ cx: window._w.cx, side: window._side }));
+      let maxStep = 0; for (let i = 1; i < path.length; i++) maxStep = Math.max(maxStep, Math.abs(path[i][0] - path[i - 1][0]) + Math.abs(path[i][1] - path[i - 1][1]));
+      const end = path[path.length - 1];
+      if (Math.sign(end[0] - r.cx) !== -r.side || maxStep > 60 || !end[2]) throw new Error(`${map} window ${wi} side ${side}: bad climb ${JSON.stringify(path.map((q) => q.map((v) => (typeof v === 'number' ? Math.round(v) : v))))}`);
+      tested++;
+    }
+  }
+  if (tested < 6) throw new Error('too few window climbs tested: ' + tested);
+  console.log('windows OK', JSON.stringify({ climbed: tested, noLandingRefused: refused }));
 }
 const appErr = await page.evaluate(() => App.errors || 0);
 await browser.close();

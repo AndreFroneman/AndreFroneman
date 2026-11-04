@@ -67,6 +67,15 @@ class HUD {
       item('MED[' + Input.label('medkit') + ']', p.medkits, '#d89090');
       item('PLANK', p.planksFree ? '∞' : p.planks, '#c8a070');
       item('GREN[' + Input.label('grenade') + ']', p.grenades, '#b8c090');
+      if (g.mode.blackout) {
+        // flashlight battery: drains while the light is on, flashes when nearly flat
+        const bw2 = 90 * s, bh2 = 9 * s, bx2 = ix + 6 * s, by2 = by + 36 * s, b = (p.battery || 0) / 100;
+        const low = b < 0.25, col = b < 0.08 ? '#d04020' : low ? '#d8a030' : '#c8d070';
+        ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(bx2, by2, bw2, bh2);
+        if (!(low && Math.sin(g.time * 10) < 0 && p.flashlight)) { ctx.fillStyle = col; ctx.fillRect(bx2 + 1, by2 + 1, (bw2 - 2) * b, bh2 - 2); }
+        ctx.fillStyle = 'rgba(200,200,190,0.6)'; ctx.fillRect(bx2 + bw2, by2 + 2.5 * s, 3 * s, bh2 - 5 * s);
+        txt((p.flashlight ? 'LIGHT ' : 'light ') + '[' + Input.label('flashlight') + '] ' + Math.ceil(b * 100) + '%', bx2 + bw2 + 8 * s, by2 + 8 * s, p.flashlight ? col : '#6a6a5a', 11);
+      }
       // ------------------------------------------------- weapon
       const gun = p.gun;
       if (gun) {
@@ -75,6 +84,8 @@ class HUD {
         const iw = Math.min(150 * s, gs.icon.width / GunArt.RES * 1.9 * s), ih = iw * gs.icon.height / gs.icon.width;
         ctx.globalAlpha = 0.9; ctx.drawImage(gs.icon, rx - iw, ch - 110 * s - ih / 2, iw, ih); ctx.globalAlpha = 1;
         txt(def.name.toUpperCase(), rx, ch - 76 * s, '#cfc4a8', 13, 'right');
+        const tags = Object.values(def.att || {}).filter(Boolean).concat(gun.base.integral || []).map((k) => ({ suppressor: 'SUPP', light: 'LIGHT', laser: 'LASER', reddot: 'RED DOT', scope: '4×', extmag: 'EXT MAG', grip: 'GRIP' }[k]));
+        if (tags.length) { ctx.font = F(13); const nw = ctx.measureText(def.name.toUpperCase()).width; txt(tags.join(' · ') + '  |', rx - nw - 8 * s, ch - 76 * s, '#8a9a7a', 10, 'right'); }
         if (def.cat !== 'melee') {
           const res = p.infAmmo ? '∞' : (p.reserve[def.ammo] || 0);
           ctx.font = F(34); const rw = ctx.measureText(String(res)).width;

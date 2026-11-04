@@ -135,6 +135,7 @@ const UI = {
       h('div', { class: 'logo' }, h('div', { class: 'logo-main' }, 'HOLLOW CORDON'), h('div', { class: 'logo-sub' }, 'Marrow Falls is sealed. You are inside.')),
       h('div', { class: 'menu' },
         this.btn('CAMPAIGN', () => this.campaignMenu(), 'big'),
+        this.btn('BLACKOUT', () => this.campaignMenu(CAMPAIGNS.blackout), 'big blackout'),
         this.btn('SURVIVAL', () => this.survivalSetup(), 'big'),
         this.btn('SANDBOX', () => this.sandboxSetup(), 'big'),
         this.btn('MAP CREATOR', () => App.openEditor(), 'big'),
@@ -143,7 +144,7 @@ const UI = {
         this.btn('ABOUT', () => this.about()),
       ),
       h('div', { class: 'install-slot' }),
-      h('div', { class: 'footer' }, 'v1.1 · all art & audio procedurally generated · ', h('span', { class: 'dim' }, 'Esc pauses in game · gamepad supported')));
+      h('div', { class: 'footer' }, 'v2.0 · all art & audio procedurally generated · ', h('span', { class: 'dim' }, 'Esc pauses in game · gamepad supported')));
     this.show(el, false);
     this.refreshInstall();
   },
@@ -211,82 +212,86 @@ const UI = {
     this.show(el, false);
   },
   // ------------------------------------------------------------ campaign
-  campaignMenu() {
+  // shared by the story Campaign and Blackout (C = CAMPAIGNS[kind])
+  campaignMenu(C = CAMPAIGNS.campaign) {
     this.clear();
-    const save = CampaignSave.load();
+    const save = C.save.load();
     const S = this.setup;
-    const go = (i) => App.start('campaign', { chapter: i, survivor: save.survivor, difficulty: save.difficulty });
+    const unit = C.unit, noun = C.noun || 'campaign';
+    const go = (i) => App.start(C.kind, { chapter: i, survivor: save.survivor, difficulty: save.difficulty });
     let chapters = null;
     if (save) {
       chapters = h('div', { class: 'chapters' });
-      CAMPAIGN.forEach((c, i) => {
+      C.chapters.forEach((c, i) => {
         const open = i <= save.unlocked;
         const done = i < save.unlocked || (c.final && save.completed);
         chapters.append(h('div', { class: 'card chapter' + (open ? '' : ' locked'), tabindex: open ? 0 : -1, onclick: () => { if (open) go(i); } },
           mapThumb(MapLib.get(c.map), 220, 60),
-          h('div', { class: 'card-s' }, 'Chapter ' + (i + 1) + (done ? '  ✓' : '')),
+          h('div', { class: 'card-s' }, unit + ' ' + (i + 1) + (done ? '  ✓' : '')),
           h('div', { class: 'card-t' }, open ? c.title : '— locked —'),
           h('div', { class: 'card-d' }, open ? c.place : '')));
       });
     }
     const startNew = () => {
-      const go0 = () => { this.saveSetup(); CampaignSave.fresh(S.survivor, S.difficulty); App.start('campaign', { chapter: 0, survivor: S.survivor, difficulty: S.difficulty }); };
-      if (save) this.ask('Start a new campaign? Your current campaign progress will be replaced.', go0, 'START NEW');
+      const go0 = () => { this.saveSetup(); C.save.fresh(S.survivor, S.difficulty); App.start(C.kind, { chapter: 0, survivor: S.survivor, difficulty: S.difficulty }); };
+      if (save) this.ask(`Start a new ${noun}? Your current ${noun} progress will be replaced.`, go0, 'START NEW');
       else go0();
     };
     const surv = save ? SURVIVORS.find((x) => x.id === save.survivor) : null;
-    const el = this.screen('CAMPAIGN — THE LONG WAY OUT',
-      h('p', { class: 'hint' }, 'Seven chapters across Marrow Falls, from St. Halloran Hospital to the gates of Checkpoint Sable. Weapons, supplies and cash carry over between chapters. If you die, the chapter restarts with the gear you brought into it.'),
+    const el = this.screen(C.title,
+      h('p', { class: 'hint' }, C.hint || 'Seven chapters across Marrow Falls, from St. Halloran Hospital to the gates of Checkpoint Sable. Weapons, supplies and cash carry over between chapters. If you die, the chapter restarts with the gear you brought into it.'),
       save ? h('div', { class: 'continue' },
         h('div', {},
-          h('div', { class: 'card-t' }, save.completed ? 'Campaign complete — replay any chapter' : `Continue: Chapter ${save.unlocked + 1} — ${CAMPAIGN[save.unlocked].title}`),
+          h('div', { class: 'card-t' }, save.completed ? `${noun[0].toUpperCase() + noun.slice(1)} complete — replay any ${unit.toLowerCase()}` : `Continue: ${unit} ${save.unlocked + 1} — ${C.chapters[save.unlocked].title}`),
           h('div', { class: 'card-d' }, `${surv ? surv.name : ''} · ${(DIFFICULTY[save.difficulty] || DIFFICULTY.normal).label} · $${save.cash} · ${save.kills || 0} kills · ${fmtTime(save.time || 0)}`)),
         save.completed ? null : this.btn('CONTINUE', () => go(save.unlocked), 'primary')) : null,
-      save ? h('h3', {}, 'Chapters') : null, chapters,
-      h('h3', {}, save ? 'New campaign — survivor' : 'Survivor'), this.survivorCards(S.survivor, (id) => { S.survivor = id; }),
+      save ? h('h3', {}, unit + 's') : null, chapters,
+      h('h3', {}, save ? `New ${noun} — survivor` : 'Survivor'), this.survivorCards(S.survivor, (id) => { S.survivor = id; }),
       h('h3', {}, 'Difficulty'), this.diffPicker(S.difficulty, (k) => { S.difficulty = k; }),
-      h('div', { class: 'row end' }, this.back(), this.btn(save ? 'NEW CAMPAIGN' : 'BEGIN CAMPAIGN', startNew, save ? '' : 'primary')));
+      h('div', { class: 'row end' }, this.back(), this.btn(save ? 'NEW ' + noun.toUpperCase() : 'BEGIN ' + noun.toUpperCase(), startNew, save ? '' : 'primary')));
+    if (C.kind === 'blackout') el.classList.add('blackout');
     this.show(el, false);
   },
-  briefing(i, onBegin) {
-    const c = CAMPAIGN[i];
-    const el = h('div', { class: 'screen brief' }, h('div', { class: 'panel narrow' },
-      h('div', { class: 'card-s' }, `CHAPTER ${i + 1} OF ${CAMPAIGN.length}`),
+  briefing(i, onBegin, C = CAMPAIGNS.campaign) {
+    const c = C.chapters[i];
+    const el = h('div', { class: 'screen brief' + (C.kind === 'blackout' ? ' blackout' : '') }, h('div', { class: 'panel narrow' },
+      h('div', { class: 'card-s' }, `${C.unit.toUpperCase()} ${i + 1} OF ${C.chapters.length}`),
       h('h2', {}, c.title.toUpperCase()),
       h('div', { class: 'sub' }, c.place),
       ...c.brief.map((p) => h('p', {}, p)),
       h('h3', {}, 'Objectives'),
       h('ol', { class: 'objectives' }, ...c.stages.map((st) => h('li', {}, st.text))),
-      h('p', { class: 'hint' }, `You get a short moment to prepare: [${Input.label('shop')}] opens the supply cache, [${Input.label('nextWave')}] moves out immediately. Objective markers show on screen; [${Input.label('interact')}] picks up items and works machinery.`),
+      h('p', { class: 'hint' }, C.briefHint ? C.briefHint() : `You get a short moment to prepare: [${Input.label('shop')}] opens the supply cache, [${Input.label('nextWave')}] moves out immediately. Objective markers show on screen; [${Input.label('interact')}] picks up items and works machinery.`),
       h('div', { class: 'row end' }, this.btn('QUIT', () => App.toMenu(), 'ghost'), this.btn('BEGIN', () => { this.pop(); Input.clear(); if (onBegin) onBegin(); }, 'primary'))));
     this.show(el, true);
     Sfx.play('wave_start', { vol: 0.5 });
   },
-  chapterComplete(i, stats) {
-    const c = CAMPAIGN[i], n = CAMPAIGN[i + 1];
-    const el = this.screen('CHAPTER COMPLETE',
-      h('div', { class: 'sub' }, `Chapter ${i + 1}: ${c.title}`),
+  chapterComplete(i, stats, C = CAMPAIGNS.campaign) {
+    const c = C.chapters[i], n = C.chapters[i + 1], U = C.unit.toUpperCase();
+    const el = this.screen(U + ' COMPLETE',
+      h('div', { class: 'sub' }, `${C.unit} ${i + 1}: ${c.title}`),
       h('p', { class: 'debrief' }, c.debrief),
       h('table', { class: 'stats' }, ...stats.map(([k, v]) => h('tr', {}, h('td', {}, k), h('td', {}, String(v))))),
       h('div', { class: 'row end' },
         this.btn('MAIN MENU', () => App.toMenu(), 'ghost'),
-        n ? this.btn(`CHAPTER ${i + 2}: ${n.title.toUpperCase()}`, () => { const s = CampaignSave.load() || {}; App.start('campaign', { chapter: i + 1, survivor: s.survivor, difficulty: s.difficulty }); }, 'primary') : null));
+        n ? this.btn(`${U} ${i + 2}: ${n.title.toUpperCase()}`, () => { const s = C.save.load() || {}; App.start(C.kind, { chapter: i + 1, survivor: s.survivor, difficulty: s.difficulty }); }, 'primary') : null));
     el.classList.add('gameover');
     el.firstChild.classList.add('narrow');
     this.show(el, true);
   },
-  ending(save, stats) {
+  ending(save, stats, C = CAMPAIGNS.campaign) {
     const surv = SURVIVORS.find((x) => x.id === save.survivor);
     const row = (k, v) => h('tr', {}, h('td', {}, k), h('td', {}, String(v)));
+    const E = C.epilogue;
     const el = h('div', { class: 'screen ending' }, h('div', { class: 'panel narrow' },
       h('div', { class: 'card-s' }, 'EPILOGUE'),
-      h('h2', {}, 'THE LINE IS OPEN'),
-      ...EPILOGUE.map((p, k) => h('p', { class: k === EPILOGUE.length - 1 ? 'last' : '' }, p)),
+      h('h2', {}, C.endTitle),
+      ...E.map((p, k) => h('p', { class: k === E.length - 1 ? 'last' : '' }, p)),
       h('table', { class: 'stats' },
         row('Survivor', surv ? surv.name : ''),
         row('Difficulty', (DIFFICULTY[save.difficulty] || DIFFICULTY.normal).label),
-        row('Infected killed (whole campaign)', save.kills || 0),
-        row('Time inside the cordon', fmtTime(save.time || 0))),
+        row(C.endWho, save.kills || 0),
+        row(C.endTime, fmtTime(save.time || 0))),
       h('div', { class: 'credits' }, 'HOLLOW CORDON', h('br'), 'Design, code, art and audio generated in-engine', h('br'), 'Thank you for playing.'),
       h('div', { class: 'row end' }, this.btn('MAIN MENU', () => App.toMenu(), 'primary'))));
     el.classList.add('gameover');
@@ -459,6 +464,42 @@ const UI = {
     this.show(el, true);
   },
 
+  openBench(mode) {
+    if (this.anyOverlay()) return;
+    const p = mode.game.player, body = h('div', { class: 'shop-body one' }), msg = h('div', { class: 'shop-msg' });
+    const say = (r, ok) => { msg.textContent = r === true ? ok : r; msg.className = 'shop-msg ' + (r === true ? 'ok' : 'bad'); render(); };
+    const render = () => { body.innerHTML = ''; body.append(this.workbenchCol(mode, p, say, true)); };
+    render();
+    const el = h('div', { class: 'screen shop' }, h('div', { class: 'panel narrow' }, h('h2', {}, 'WORKBENCH'), h('p', { class: 'hint' }, 'Sandbox: every attachment is free.'), msg, body,
+      h('div', { class: 'row end' }, this.btn('CLOSE', () => { const i = this.stack.indexOf(el); if (i >= 0) this.stack.splice(i, 1); el.remove(); this.shopOpen = false; Input.clear(); }, 'primary'))));
+    this.shopEl = el; this.shopOpen = true; this.show(el, true);
+  },
+  // ------------------------------------------------------------ workbench
+  // Fit attachments to any carried firearm: buy once per gun, then swap freely.
+  workbenchCol(mode, p, say, free) {
+    const col = h('div', { class: 'shop-col bench' }, h('h3', {}, 'Workbench — attachments'));
+    const guns = p.weapons.filter((w) => w.def.cat !== 'melee' && (slotsFor(w.base).length || (w.base.integral || []).length));
+    if (!guns.length) { col.append(h('div', { class: 'dim' }, 'Carry a firearm that takes attachments.')); return col; }
+    let g = guns.find((w) => w.base.id === this.benchGun) || (p.gun && guns.includes(p.gun) ? p.gun : guns[0]);
+    this.benchGun = g.base.id;
+    const pick = h('div', { class: 'bench-guns' });
+    for (const w of guns) pick.append(h('button', { class: 'btn tiny' + (w === g ? ' sel' : ''), onclick: () => { this.benchGun = w.base.id; say(true, ''); } }, w.base.name));
+    col.append(pick);
+    const icon = GunArt.get(g.base).icon, ic = h('canvas', { width: icon.width, height: icon.height, class: 'gicon big' }); ic.getContext('2d').drawImage(icon, 0, 0);
+    col.append(h('div', { class: 'bench-head' }, ic, h('div', {}, h('div', { class: 'item-t' }, g.base.name), h('div', { class: 'item-d' }, (g.base.integral || []).length ? 'Built in: ' + g.base.integral.map((k) => ATTACHMENTS[k].name.toLowerCase()).join(', ') : ''))));
+    for (const sl of slotsFor(g.base)) {
+      col.append(h('div', { class: 'cat' }, SLOT_LABEL[sl] + (g.att[sl] ? ' — ' + ATTACHMENTS[g.att[sl]].name : ' — empty')));
+      for (const id of Object.keys(ATTACHMENTS).filter((k) => ATTACHMENTS[k].slot === sl)) {
+        const a = ATTACHMENTS[id], fitted = g.att[sl] === id, owned = free || g.owned.has(id);
+        const btn = fitted ? this.btn('REMOVE', () => { g.fit(sl, null); Sfx.play('click'); say(true, a.name + ' removed'); }, 'tiny ghost')
+          : owned ? this.btn('FIT', () => { g.owned.add(id); g.fit(sl, id); Sfx.play('mag_in', { vol: 0.6 }); say(true, a.name + ' fitted to the ' + g.base.name); }, 'tiny')
+          : this.btn('$' + a.price, () => say(mode.buyAttachment(g, id), a.name + ' fitted to the ' + g.base.name), 'tiny');
+        col.append(h('div', { class: 'item' + (fitted ? ' owned' : '') }, h('div', { class: 'item-m' }, h('div', { class: 'item-t' }, a.name), h('div', { class: 'item-d' }, a.desc)), btn));
+      }
+    }
+    return col;
+  },
+
   // ------------------------------------------------------------ shop
   toggleShop(mode) { if (this.shopOpen) this.closeShop(); else this.openShop(mode); },
   closeShop() { if (!this.shopOpen) return; const el = this.shopEl; const i = this.stack.indexOf(el); if (i >= 0) this.stack.splice(i, 1); el.remove(); this.shopOpen = false; Input.clear(); },
@@ -499,11 +540,12 @@ const UI = {
       }
       ammo.append(h('h3', {}, 'Equipment'));
       for (const it of SHOP_ITEMS) {
+        if (it.blackout && !mode.blackout) continue;
         const locked = it.unlock && mode.wave + 1 < it.unlock;
         ammo.append(h('div', { class: 'item' + (locked ? ' locked' : '') }, h('div', { class: 'item-m' }, h('div', { class: 'item-t' }, it.label), h('div', { class: 'item-d' }, it.desc)),
           h('button', { class: 'btn tiny', disabled: locked, onclick: () => say(mode.buyItem(it), 'Bought ' + it.label) }, locked ? 'WAVE ' + it.unlock : '$' + it.price)));
       }
-      body.append(weap, ammo);
+      body.append(weap, ammo, this.workbenchCol(mode, p, say, false));
     };
     render();
     const el = h('div', { class: 'screen shop' }, h('div', { class: 'panel wide' },
@@ -543,6 +585,7 @@ const UI = {
         act('Clear blood & gibs', () => { g.fx.clearBlood(); }),
         act('Refill / heal', () => { if (p) { p.hp = p.maxHp; for (const w of p.weapons) { if (w.def.cat !== 'melee') { w.mag = w.def.mag; p.reserve[w.def.ammo] = AMMO[w.def.ammo].max; } } p.medkits = 5; p.grenades = 6; } }),
         act('Give all weapons', () => { if (p) for (const w of WEAPON_LIST) p.give(w.id, 4); }),
+        act('Weapon workbench', () => this.openBench(mode)),
         tog('God mode', () => p && p.god, (v) => { if (p) p.god = v; }),
         tog('Infinite ammo', () => p && p.infAmmo, (v) => { if (p) p.infAmmo = v; }),
         tog('Slow motion', () => g.timeScale < 1, (v) => { g.timeScale = v ? 0.3 : 1; }),

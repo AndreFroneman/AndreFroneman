@@ -10,15 +10,21 @@
 const Loadout = {
   capture(p) {
     return {
-      weapons: p.weapons.map((w) => ({ id: w.def.id, mag: w.mag })), cur: p.gun ? p.gun.def.id : null,
+      weapons: p.weapons.map((w) => ({ id: w.def.id, mag: w.mag, att: Object.assign({}, w.att), owned: [...(w.owned || [])] })), cur: p.gun ? p.gun.def.id : null,
       reserve: Object.assign({}, p.reserve), hp: Math.round(p.hp), armor: Math.round(p.armor),
-      medkits: p.medkits, grenades: p.grenades, planks: p.planks,
+      medkits: p.medkits, grenades: p.grenades, planks: p.planks, battery: Math.round(p.battery === undefined ? 100 : p.battery),
     };
   },
   apply(p, L) {
     if (!L) return false;
     p.weapons = []; p.cur = 0; p.prev = 0;
-    for (const w of L.weapons || []) { const g = p.give(w.id, 0); if (g && g.def.mag) g.mag = clamp(w.mag | 0, 0, g.def.mag); }
+    for (const w of L.weapons || []) {
+      const g = p.give(w.id, 0); if (!g) continue;
+      g.owned = new Set((w.owned || []).filter((id) => ATTACHMENTS[id]));
+      for (const sl in w.att || {}) if (w.att[sl] && g.owned.has(w.att[sl])) g.fit(sl, w.att[sl]);
+      if (g.def.mag) g.mag = clamp(w.mag | 0, 0, g.def.mag);
+    }
+    p.battery = L.battery === undefined ? 100 : L.battery;
     if (!p.weapons.length) { p.give('machete'); p.give(p.surv.start, 4); }
     for (const k in L.reserve || {}) p.reserve[k] = L.reserve[k];
     p.hp = clamp(L.hp || 100, 25, p.maxHp); p.armor = clamp(L.armor || 0, 0, 100);
@@ -145,14 +151,19 @@ const EPILOGUE = [
   'The cordon is hollow.',
 ];
 
+// a campaign = an ordered chapter list + its own save slot; Blackout registers a second one
+const CAMPAIGNS = {
+  campaign: { kind: 'campaign', unit: 'Chapter', title: 'CAMPAIGN — THE LONG WAY OUT', chapters: CAMPAIGN, save: CampaignSave, epilogue: EPILOGUE, endTitle: 'THE LINE IS OPEN', endWho: 'Infected killed (whole campaign)', endTime: 'Time inside the cordon' },
+};
+
 // ---------------------------------------------------------------------
 class CampaignMode extends SurvivalMode {
   constructor(game, opts = {}) {
     super(game, opts);
     this.name = 'Campaign';
     this.chIndex = opts.chapter | 0;
-    this.ch = CAMPAIGN[this.chIndex];
-    this.save = CampaignSave.load() || CampaignSave.fresh(opts.survivor, opts.difficulty);
+    this.ch = this.C.chapters[this.chIndex];
+    this.save = this.C.save.load() || this.C.save.fresh(opts.survivor, opts.difficulty);
     this.wave = this.ch.tier;              // drives shop unlocks & drop tables
     this.state = 'prep'; this.prepT = 20;
     this.stageI = -1; this.stage = null;
@@ -162,14 +173,16 @@ class CampaignMode extends SurvivalMode {
     this.cash = this.save.cash || 200;
     this.flash = 0;
   }
+  get C() { return CAMPAIGNS.campaign; }
+  aliveCount() { return this.game.zombies.length; }
   start() {
     const p = this.game.player;
     if (!Loadout.apply(p, this.save.loadout)) { p.give('machete'); p.give(p.surv.start, 4); p.medkits = 1; p.planks = 3; }
     p.hp = Math.max(p.hp, 70);
     Sfx.loop(this.game.map.amb || 'amb_drone', 0.5);
     UI.briefing(this.chIndex, () => {
-      this.game.hud.banner(`CHAPTER ${this.chIndex + 1}: ${this.ch.title.toUpperCase()}`, `[${Input.label('shop')}] supply cache   ·   [${Input.label('nextWave')}] move out now`);
-    });
+      this.game.hud.banner(`${this.C.unit.toUpperCase()} ${this.chIndex + 1}: ${this.ch.title.toUpperCase()}`, `[${Input.label('shop')}] supply cache   ·   [${Input.label('nextWave')}] move out now`);
+    }, this.C);
   }
   // ----------------------------------------------------------- update
   update(dt) {
@@ -184,7 +197,7 @@ class CampaignMode extends SurvivalMode {
       if (this.prepT <= 0 || (Input.actPressed('nextWave') && !UI.shopOpen)) { UI.closeShop(); this.state = 'live'; this.nextStage(); }
       return;
     }
-    if (Input.actPressed('shop')) g.hud.toast('No time to shop — keep moving');
+    if (Input.actPressed('shop') && !UI.shopOpen) g.hud.toast(this.noShopMsg || 'No time to shop — keep moving');
     const st = this.stage;
     if (!st) return;
     // spawning: steady trickle, surging during holdouts
@@ -192,7 +205,7 @@ class CampaignMode extends SurvivalMode {
       this.trickleT -= dt;
       const surge = st.type === 'survive' || st.type === 'hold' ? (st.surge || 1.3) : 1;
       const maxAlive = Math.round(this.ch.maxAlive * surge);
-      if (this.trickleT <= 0 && g.zombies.length < maxAlive) {
+      if (this.trickleT <= 0 && this.aliveCount() < maxAlive) {
         this.trickleT = 1 / (this.ch.rate * surge) * rand(0.6, 1.4);
         this.spawnOne(pick(this.pool));
       }
@@ -285,21 +298,21 @@ class CampaignMode extends SurvivalMode {
     const s = this.save;
     s.loadout = Loadout.capture(p);
     s.cash = this.cash; s.kills = (s.kills || 0) + this.kills; s.time = (s.time || 0) + this.time;
-    s.unlocked = Math.max(s.unlocked || 0, Math.min(CAMPAIGN.length - 1, this.chIndex + 1));
+    s.unlocked = Math.max(s.unlocked || 0, Math.min(this.C.chapters.length - 1, this.chIndex + 1));
     if (this.ch.final) s.completed = true;
-    CampaignSave.store(s);
+    this.C.save.store(s);
     Sfx.play('wave_clear', { vol: 0.9 });
-    this.game.hud.banner('CHAPTER COMPLETE', this.ch.title);
+    this.game.hud.banner(this.C.unit.toUpperCase() + ' COMPLETE', this.ch.title);
     const stats = [['Kills', this.kills], ['Headshots', this.headshots], ['Limbs severed', this.dismembers], ['Time', fmtTime(this.time)], ['Cash carried', '$' + this.cash]];
-    this.game.later(2.2, () => (this.ch.final ? UI.ending(s, stats) : UI.chapterComplete(this.chIndex, stats)));
+    this.game.later(2.2, () => (this.ch.final ? UI.ending(s, stats, this.C) : UI.chapterComplete(this.chIndex, stats, this.C)));
   }
   onPlayerDeath() {
     if (this.over) return;
     this.over = true;
     this.game.later(2.6, () => UI.gameOver({
-      title: 'YOU DIED', sub: `Chapter ${this.chIndex + 1}: ${this.ch.title}`,
+      title: 'YOU DIED', sub: `${this.C.unit} ${this.chIndex + 1}: ${this.ch.title}`,
       stats: [['Objective', this.stage ? this.stage.text : 'Preparing'], ['Kills', this.kills], ['Time', fmtTime(this.time)]],
-      retryLabel: 'RETRY CHAPTER',
+      retryLabel: 'RETRY ' + this.C.unit.toUpperCase(),
     }));
   }
   objectiveText() {
@@ -317,7 +330,7 @@ class CampaignMode extends SurvivalMode {
   hudInfo() {
     return {
       left: [['CASH', '$' + this.cash], ['KILLS', this.kills]],
-      center: `CHAPTER ${this.chIndex + 1}  ·  ${this.ch.title.toUpperCase()}`,
+      center: `${this.C.unit.toUpperCase()} ${this.chIndex + 1}  ·  ${this.ch.title.toUpperCase()}`,
       centerSub: this.objectiveText(),
       combo: this.combo >= 3 ? 'x' + this.combo : '',
     };
@@ -402,6 +415,15 @@ function drawObjectiveItem(ctx, kind, x, y, t) {
     ctx.fillStyle = '#9a1a12'; roundRect(ctx, -11, -26, 22, 26, 3); ctx.fill(); ctx.strokeStyle = '#2a0a06'; ctx.lineWidth = 1; ctx.stroke();
     ctx.fillStyle = '#5a5a58'; ctx.fillRect(4, -31, 5, 6); ctx.fillStyle = 'rgba(255,255,255,0.15)'; ctx.fillRect(-9, -22, 3, 18);
     ctx.strokeStyle = 'rgba(0,0,0,0.4)'; ctx.beginPath(); ctx.moveTo(-8, -20); ctx.lineTo(8, -6); ctx.moveTo(8, -20); ctx.lineTo(-8, -6); ctx.stroke();
+  } else if (kind === 'fuse') {
+    ctx.fillStyle = '#d8d0b8'; roundRect(ctx, -5, -22, 10, 20, 2); ctx.fill(); ctx.strokeStyle = '#2a2a24'; ctx.lineWidth = 1; ctx.stroke();
+    ctx.fillStyle = '#8a8a88'; ctx.fillRect(-6, -25, 12, 4); ctx.fillRect(-6, -4, 12, 4); ctx.fillStyle = '#b01a14'; ctx.fillRect(-5, -15, 10, 4);
+  } else if (kind === 'keycard') {
+    ctx.rotate(-0.2); ctx.fillStyle = '#e8e4d8'; roundRect(ctx, -11, -16, 22, 14, 2); ctx.fill(); ctx.strokeStyle = '#333'; ctx.lineWidth = 0.8; ctx.stroke();
+    ctx.fillStyle = '#1a3a7a'; ctx.fillRect(-11, -16, 22, 4); ctx.fillStyle = '#c8a830'; ctx.fillRect(-8, -10, 5, 4); ctx.fillStyle = '#555'; ctx.fillRect(0, -10, 8, 1.5); ctx.fillRect(0, -7, 6, 1.5);
+  } else if (kind === 'key') {
+    ctx.fillStyle = '#c8a830'; ctx.beginPath(); ctx.arc(-6, -10, 5, 0, TAU); ctx.fill(); ctx.fillStyle = '#1a1a1a'; ctx.beginPath(); ctx.arc(-6, -10, 2, 0, TAU); ctx.fill();
+    ctx.fillStyle = '#c8a830'; ctx.fillRect(-1, -11.5, 14, 3); ctx.fillRect(9, -9, 2, 4); ctx.fillRect(5, -9, 2, 3); ctx.fillStyle = '#7a1a14'; ctx.fillRect(-12, -6, 6, 6);
   } else {
     ctx.fillStyle = '#c8a860'; ctx.fillRect(-13, -16, 26, 16); ctx.fillStyle = '#e8e0c8'; ctx.fillRect(-10, -19, 20, 4);
     ctx.fillStyle = '#8a1a14'; ctx.fillRect(-13, -9, 26, 3); ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.font = 'bold 5px monospace'; ctx.fillText('VARGA', -9, -11);

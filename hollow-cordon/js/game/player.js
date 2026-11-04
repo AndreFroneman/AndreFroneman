@@ -69,6 +69,46 @@ const KICK_TRACK = [
   [0.5, { th: 0.1, knee: 0.15, torso: 0.05 }],
 ];
 
+// attachments drawn on the gun at runtime, in the gun's frame (origin = trigger hand)
+function drawAttachments(c, gs, def, rail, lightOn) {
+  const att = def.att; if (!att) return;
+  const top = gs.top !== undefined ? gs.top : -8;
+  const metal = (x, y, w, h, r, col) => {
+    roundRect(c, x, y, w, h, r); c.fillStyle = col; c.fill();
+    const g = c.createLinearGradient(0, y, 0, y + h); g.addColorStop(0, 'rgba(255,255,255,0.22)'); g.addColorStop(0.4, 'rgba(255,255,255,0.02)'); g.addColorStop(1, 'rgba(0,0,0,0.45)');
+    c.fillStyle = g; c.fill(); c.strokeStyle = 'rgba(0,0,0,0.9)'; c.lineWidth = 0.5; c.stroke();
+  };
+  if (att.muzzle === 'suppressor') {
+    const [mx, my] = gs.muzzle, L = def.suppLen || 14, r = def.cat === 'pistol' ? 2.1 : 2.6;
+    metal(mx - 1.5, my - r, L + 1.5, r * 2, r * 0.8, '#232528');
+    c.strokeStyle = 'rgba(0,0,0,0.5)'; c.lineWidth = 0.4; for (let x = mx + 2; x < mx + L - 1; x += 3) { c.beginPath(); c.moveTo(x, my - r + 0.4); c.lineTo(x, my + r - 0.4); c.stroke(); }
+  }
+  if (att.rail === 'light' || att.rail === 'laser') {
+    const [x, y] = rail, light = att.rail === 'light';
+    c.fillStyle = '#121314'; c.fillRect(x - 2.5, y - 2.4, 4, 1.2); // rail mount
+    metal(x - 4, y - 1.6, light ? 8 : 6, light ? 3.4 : 2.8, 1, light ? '#1a1b1d' : '#2a1a1a');
+    if (light) { c.fillStyle = lightOn ? '#fff6d8' : '#8a8c80'; c.beginPath(); c.ellipse(x + 4, y + 0.1, 0.8, 1.5, 0, 0, TAU); c.fill(); }
+    else { c.fillStyle = '#ff3a2a'; c.beginPath(); c.arc(x + 2, y - 0.2, 0.6, 0, TAU); c.fill(); }
+  }
+  if (att.optic === 'reddot') {
+    const y = top - 4.2;
+    metal(1, y, 7, 4.2, 1.2, '#1c1d20');
+    c.fillStyle = 'rgba(90,150,160,0.5)'; c.fillRect(6.6, y + 0.8, 1, 2.6);
+    c.fillStyle = '#ff3a2a'; c.fillRect(6.8, y + 1.8, 0.5, 0.5);
+  } else if (att.optic === 'scope') {
+    const y = top - 6;
+    c.fillStyle = '#16171a'; c.fillRect(3, y + 2.4, 2, 3.6); c.fillRect(13, y + 2.4, 2, 3.6); // rings
+    metal(-3, y, 24, 3.6, 1.6, '#1c1d20'); metal(18, y - 1, 5, 5.6, 1.4, '#1c1d20'); metal(-5, y - 0.6, 3.5, 4.8, 1.2, '#1c1d20');
+    c.fillStyle = '#16171a'; roundRect(c, 7.5, y - 2.4, 3, 2.4, 0.4); c.fill();
+    c.fillStyle = 'rgba(140,210,225,0.7)'; c.fillRect(22.5, y + 0.2, 0.6, 3.2);
+  }
+  if (att.grip === 'grip' && gs.fore) {
+    const [fx, fy] = gs.fore;
+    metal(fx, fy - 0.6, 2.8, 7.4, 0.9, '#1e1f22');
+    c.strokeStyle = 'rgba(255,255,255,0.12)'; c.lineWidth = 0.3; for (let y = fy + 1.5; y < fy + 6.5; y += 1.1) { c.beginPath(); c.moveTo(fx + 0.4, y); c.lineTo(fx + 2.4, y); c.stroke(); }
+  }
+}
+
 class Player {
   constructor(game, x, y, surv) {
     this.game = game;
@@ -93,6 +133,7 @@ class Player {
     this.phase = 0;
     this.crouch = 0;
     this.flashlight = true;
+    this.battery = 100;
     this.hurtT = 0; this.invulnT = 0;
     this.swing = null; this.kickT = 0; this.kickHits = null;
     this.interactTarget = null;
@@ -207,7 +248,15 @@ class Player {
     const light = g.lightAt(this.x, this.y - 60);
     this.visibility = clamp(0.45 + light * 0.8 + (this.flashlight ? 0.35 : 0), 0.4, 1.6) * (crouching ? 0.7 : 1);
     // ---------------- actions
-    if (ui.flashlight) { this.flashlight = !this.flashlight; Sfx.play('click', { vol: 0.5 }); }
+    if (ui.flashlight) {
+      if (!this.flashlight && g.mode.blackout && this.battery <= 0) { g.hud.toast('Battery dead — find batteries'); Sfx.play('dry', { vol: 0.4 }); }
+      else { this.flashlight = !this.flashlight; Sfx.play('click', { vol: 0.5 }); }
+    }
+    if (g.mode.blackout && this.flashlight) {
+      const weaponLight = this.gun && this.gun.def.light;
+      this.battery = Math.max(0, this.battery - dt * (weaponLight ? 1.5 : 0.85));
+      if (this.battery <= 0) { this.flashlight = false; g.hud.toast('Flashlight battery is dead'); Sfx.play('click', { vol: 0.5, rate: 0.6 }); }
+    }
     if (ui.medkit) this.useMedkit();
     // weapon switching
     if (ui.slot) this.selectSlot(ui.slot);
@@ -313,9 +362,10 @@ class Player {
     // flash, light, smoke, sound
     const fa = base - this.kick * this.face;
     game.fx.muzzle(m[0], m[1], fa, def.flash);
-    game.fx.light(m[0], m[1], 260 * def.flash + 80, '#ffc070', 1.6, 0.06);
+    const dark = game.mode && game.mode.blackout; // in the dark the muzzle flash is your light
+    game.fx.light(m[0], m[1], (260 * def.flash + 80) * (dark ? 2.3 : 1), '#ffc070', dark ? 2.4 : 1.6, dark ? 0.09 : 0.06);
     game.fx.smoke(m[0] + Math.cos(fa) * 6, m[1] + Math.sin(fa) * 6, 2, '#5a5a5a', 8 + def.flash * 6, 30);
-    Sfx.play('gun_' + def.id, { vol: 1, rateVar: 0.04, force: true, verb: 1 });
+    Sfx.play(def.sndKey || 'gun_' + def.id, { vol: def.sndVol || 1, rateVar: 0.04, force: true, verb: def.suppressed ? 0.4 : 1 });
     game.noise(this.x, this.y, def.noise);
     if (def.mode !== 'pump' && def.mode !== 'bolt' && def.shell && def.reloadType !== 'cyl' && def.reloadType !== 'break') this.ejectShell(def);
     if (g.mag === 0 && def.mode === 'pump') g.chamberEmpty = true;
@@ -432,8 +482,14 @@ class Player {
     for (const p of g.props) {
       if (p.dead) continue;
       let d, act = null;
-      if (p.isDoor) { d = Math.abs(p.cx - px) - p.w / 2; if (Math.abs(p.cy - py) > 80) continue; act = p.boards > 0 ? null : p.open ? 'Close door' : 'Open door'; if (!p.open && this.planks > 0 && p.boards < 3 && (this.planksFree || this.planks > 0)) act = act + '  ·  hold E: board up'; }
-      else if (p.isWindow) { d = Math.abs(p.cx - px) - p.w / 2; if (py < p.y - 60 || py > p.y + p.h + 80) continue; act = p.solid ? (p.boards < 3 && this.planks > 0 ? 'Board up window' : null) : 'Vault through window'; if (!p.solid && p.boards < 3 && this.planks > 0) act += '  ·  hold E: board up'; }
+      if (p.isDoor && p.blast) { d = Math.abs(p.cx - px) - p.w / 2; if (Math.abs(p.cy - py) > 80 || p.open) continue; act = 'Blast door (sealed)'; }
+      else if (p.isDoor) { d = Math.abs(p.cx - px) - p.w / 2; if (Math.abs(p.cy - py) > 80) continue; act = p.boards > 0 ? null : p.open ? 'Close door' : 'Open door'; if (!p.open && this.planks > 0 && p.boards < 3 && (this.planksFree || this.planks > 0)) act = act + '  ·  hold E: board up'; }
+      else if (p.isWindow) {
+        d = Math.abs(p.cx - px) - p.w / 2; if (py < p.y - 60 || py > p.y + p.h + 80) continue;
+        const canVault = !p.solid && !!this.windowLanding(p, p.cx > this.x ? 1 : -1);
+        act = p.solid || !canVault ? (p.boards < 3 && this.planks > 0 ? 'Board up window' : null) : 'Climb through window';
+        if (canVault && p.boards < 3 && this.planks > 0) act += '  ·  hold E: board up';
+      }
       else if (p.isBarricade) { d = Math.abs(p.cx - px) - p.w / 2; if (Math.abs(p.cy - py) > 90) continue; act = p.hp < p.maxHp && this.planks > 0 ? `Repair barricade (${Math.round(Math.max(0, p.hp) / p.maxHp * 100)}%)` : null; }
       else continue;
       if (act && d < bd) { bd = d; best = { obj: p, label: act }; }
@@ -456,7 +512,7 @@ class Player {
     if (t.mode) { if (!t.hold) this.game.mode.interact(o); return; }
     if (t.note) { this.game.showNote(o); return; }
     if (o.isDoor) { if (!o.boards) o.toggle(this.x); return; }
-    if (o.isWindow) { if (!o.solid) this.startVault(o); else this.board(o); return; }
+    if (o.isWindow) { if (!o.solid && this.windowLanding(o, o.cx > this.x ? 1 : -1)) this.startVault(o); else this.board(o); return; }
     if (o.isBarricade) { if (this.planks > 0 && o.repair(150 * (this.mods.barricade || 1))) { this.usePlank(); Sfx.play('hammer', { x: o.cx, y: o.cy }); } }
   }
   board(o) {
@@ -467,25 +523,44 @@ class Player {
     }
   }
   usePlank() { if (!this.planksFree) this.planks--; }
+  // Where you'd land climbing through a window: a floor within a step
+  // below the sill on the far side, with room to stand. Upper-storey
+  // windows with nothing outside return null (no climb offered).
+  windowLanding(win, dir) {
+    const g = this.game, sill = win.y + win.h;
+    for (let k = 0; k < 4; k++) {
+      const x = win.cx + dir * (win.w / 2 + this.hw + 7 + k * 8);
+      let top = Infinity;
+      for (const b of g.world.query(x - this.hw + 1, sill - 3, x + this.hw - 1, sill + 90, [])) if (b.y >= sill - 3 && b.y <= sill + 90 && b.y < top) top = b.y;
+      for (const q of g.props) if (q.solid && !q.dead && !q.isWindow && !q.isDoor && x + this.hw > q.x && x - this.hw < q.x + q.w && q.y >= sill - 3 && q.y <= sill + 90 && q.y < top) top = q.y;
+      if (top === Infinity) return null;              // nothing to stand on: a drop, not a climb
+      if (Phys.free(g, x, top - 0.5, this.hw, this.standH * 0.9)) return { x, y: top };
+    }
+    return null;
+  }
   startVault(win) {
     const dir = win.cx > this.x ? 1 : -1;
-    // find landing x on far side
-    const tx = win.cx + dir * (win.w / 2 + this.hw + 6);
-    this.vaulting = { x0: this.x, y0: this.y, x1: tx, top: win.y + win.h, t: 0, dir };
+    const land = this.windowLanding(win, dir);
+    if (!land) return;
+    const sill = win.y + win.h;
+    const xs = win.cx - dir * (win.w / 2 + 2);
+    this.vaulting = { x0: this.x, y0: this.y, xs, x1: land.x, top: sill, land: land.y, t: 0, dir, dur: 0.6 + Math.abs(this.x - xs) / 250 };
     this.face = dir;
     Sfx.play('step', { vol: 0.5 });
   }
   updateVault(dt) {
     const v = this.vaulting, d = this.body.d;
-    v.t += dt / 0.55;
+    v.t += dt / v.dur;
     const t = Math.min(1, v.t);
-    this.x = lerp(v.x0, v.x1, smooth(t));
-    this.y = t < 0.5 ? lerp(v.y0, v.top, smooth(t * 2)) : v.top;
+    // up onto the sill, over it, then down onto the landing floor
+    if (t < 0.35) { const k = smooth(t / 0.35); this.x = lerp(v.x0, v.xs, k); this.y = lerp(v.y0, v.top - 3, k); }
+    else if (t < 0.75) { const k = smooth((t - 0.35) / 0.4); this.x = lerp(v.xs, v.x1, k); this.y = v.top - 3 - Math.sin(k * Math.PI) * 4; }
+    else { const k = smooth((t - 0.75) / 0.25); this.x = v.x1; this.y = lerp(v.top - 3, v.land, k); }
     this.vx = 0; this.vy = 0;
     Pose.blend(this.body.pose, Pose.vault(d, t), Math.min(1, dt * 14));
     this.body.fk(false);
     this.updateBBox();
-    if (t >= 1) { this.vaulting = null; this.grounded = false; }
+    if (t >= 1) { this.vaulting = null; this.y = v.land; this.grounded = true; Sfx.play('land', { vol: 0.3 }); }
   }
 
   // --------------------------------------------------------------- damage
@@ -521,7 +596,31 @@ class Player {
     const lx = h[0] + Math.cos(a) * gx - Math.sin(a) * gy, ly = h[1] + Math.sin(a) * gx + Math.cos(a) * gy;
     return [this.x + lx * this.face, this.y + ly];
   }
-  muzzleWorld() { const gs = GunArt.get(this.gun.def); return this.gunPointWorld(gs.muzzle[0], gs.muzzle[1]); }
+  muzzleWorld() { const gs = GunArt.get(this.gun.def); return this.gunPointWorld(gs.muzzle[0] + (this.gun.def.suppLen || 0), gs.muzzle[1]); }
+  gunWorldAngle() { const a = this.gunAngLocal || 0; return this.face > 0 ? a : Math.PI - a; }
+  // where an attachment sits on the gun (gun-local, relative to the trigger hand)
+  railPoint(gs, def) {
+    const x = gs.fore && def.hold !== 'pistol' ? gs.fore[0] + 8 : gs.muzzle[0] - 8;
+    const under = gs.bottomAt(x);
+    return [x, (under === null ? (gs.fore ? gs.fore[1] : gs.muzzle[1] + 3) : under) + 2];
+  }
+  // the light the survivor throws: weapon light (bright, along the barrel) or the
+  // flashlight (weak in Blackout, flickering on a dying battery). null when dark.
+  flashlightSpec() {
+    if (!this.flashlight || this.dead) return null;
+    const m = this.game.mode, dark = !!(m && m.blackout);
+    const gl = this.gun && this.gun.def.light && !this.onLadder && this.handLocal && this.switchT <= 0.2;
+    let ox, oy, a, range, half, alpha;
+    if (gl) {
+      const gs = GunArt.get(this.gun.def), r = this.railPoint(gs, this.gun.def);
+      [ox, oy] = this.gunPointWorld(r[0] + 4, r[1]); a = this.gunWorldAngle(); range = dark ? 640 : 980; half = 0.22; alpha = 1;
+    } else {
+      ox = this.x + this.body.j.head.x * this.face; oy = this.y + this.body.j.head.y + 4; a = this.aimAng;
+      range = dark ? 330 : 760; half = dark ? 0.34 : 0.42; alpha = dark ? 0.55 : 1;
+    }
+    if (dark && this.battery < 25) alpha *= (this.battery < 8 ? 0.4 : 0.75) * (0.55 + 0.45 * noise1(this.game.time * 14));
+    return { ox, oy, a, range, half, alpha, weapon: !!gl };
+  }
   getCaps() { return this.body.capsules(this.x, this.y, this.face, this.caps); }
   updateBBox() { this.bbox[0] = this.x - 20; this.bbox[1] = this.y - this.h - 6; this.bbox[2] = this.x + 20; this.bbox[3] = this.y; }
 
@@ -638,7 +737,7 @@ class Player {
       const ex = jH.x + Math.cos(ha) * (R - 3.4 * s) - Math.sin(ha) * (-1.4 * s), ey = jH.y + Math.sin(ha) * (R - 3.4 * s) + Math.cos(ha) * (-1.4 * s);
       const ux = Math.sin(gunA), uy = -Math.cos(gunA); // "up" across the barrel
       const dEye = (ex - hand[0]) * ux + (ey - hand[1]) * uy;
-      const want = gs.sightH + (pistol ? 5 * s : 1.4 * s);
+      const want = gs.sightH + (def.optic ? 4.6 : 0) + (pistol ? 5 * s : 1.4 * s);
       const lift = clamp(dEye - want, -3, pistol ? 6 : 9) * ready;
       hand = [hand[0] + ux * lift, hand[1] + uy * lift];
     }
@@ -650,6 +749,7 @@ class Player {
     let sup;
     const rot = (p) => [hand[0] + Math.cos(gunA) * p[0] - Math.sin(gunA) * p[1], hand[1] + Math.sin(gunA) * p[0] + Math.cos(gunA) * p[1]];
     if (pistol) sup = rot([1.5, 3.5]);
+    else if (gs && gs.fore && def.att && def.att.grip) sup = rot([gs.fore[0] + 1.3, gs.fore[1] + 5]);
     else if (gs && gs.fore) {
       let f = gs.fore.slice();
       if (def.mode === 'pump' && g.cycle > 0) { const k = Math.sin(clamp(1 - g.cycle / def.cycleTime, 0, 1) * Math.PI); f[0] -= gs.pumpTravel * k; }
@@ -715,6 +815,25 @@ class Player {
     this.meleeAngWorld = this.face > 0 ? bladeA : Math.PI - bladeA;
   }
 
+  drawPostLight(ctx) {
+    const g = this.gun;
+    if (this.dead || !g || !g.def.laser || this.onLadder || !this.handLocal || this.switchT > 0.2) return;
+    const gs = GunArt.get(g.def), r = this.railPoint(gs, g.def), [ox, oy] = this.gunPointWorld(r[0] + 3, r[1]);
+    const a = this.gunWorldAngle(), dx = Math.cos(a), dy = Math.sin(a);
+    let d = this.game.world.rayDist(ox, oy, dx, dy, 1400);
+    for (const z of this.game.zombies) { // stop on the first infected in the beam
+      if (z.dead) continue;
+      const t = (z.x - ox) * dx + (z.y - z.h * 0.55 - oy) * dy;
+      if (t > 0 && t < d && Math.abs((z.x - ox) * dy - (z.y - z.h * 0.55 - oy) * dx) < z.h * 0.45) d = t;
+    }
+    ctx.save(); ctx.globalCompositeOperation = 'lighter';
+    const grd = ctx.createLinearGradient(ox, oy, ox + dx * d, oy + dy * d);
+    grd.addColorStop(0, 'rgba(255,40,30,0.55)'); grd.addColorStop(1, 'rgba(255,40,30,0.15)');
+    ctx.strokeStyle = grd; ctx.lineWidth = 0.9; ctx.beginPath(); ctx.moveTo(ox, oy); ctx.lineTo(ox + dx * d, oy + dy * d); ctx.stroke();
+    ctx.globalAlpha = 0.9; ctx.drawImage(Lighting.radial('#ff3020'), ox + dx * d - 7, oy + dy * d - 7, 14, 14);
+    ctx.fillStyle = '#ffd0c8'; ctx.beginPath(); ctx.arc(ox + dx * d, oy + dy * d, 1.3, 0, TAU); ctx.fill();
+    ctx.restore();
+  }
   draw(ctx) {
     if (this.dead) return;
     ctx.fillStyle = 'rgba(0,0,0,0.32)';
@@ -755,11 +874,12 @@ class Player {
           if (g.def.mode === 'pump' && g.cycle > 0) off = -gs.pumpTravel * Math.sin(clamp(1 - g.cycle / g.def.cycleTime, 0, 1) * Math.PI);
           const p = gs.pump; c.drawImage(p.cv, gs.pumpPos[0] + off + p.ox, gs.pumpPos[1] + p.oy, p.w, p.h);
         }
-        if (gs.mag && this.magState === 'in') c.drawImage(gs.mag.cv, gs.mag.ox, gs.mag.oy, gs.mag.w, gs.mag.h);
+        if (gs.mag && this.magState === 'in') c.drawImage(gs.mag.cv, gs.mag.ox, gs.mag.oy, gs.mag.w, gs.mag.h * (g.def.att && g.def.att.mag ? 1.45 : 1));
+        drawAttachments(c, gs, g.def, this.railPoint(gs, g.def), this.flashlight);
         c.restore();
         const H = this.body.spr.handsB;
         if (H && this.supHand && this.body.grip) {
-          const hb = this.body.j.handB, hs = H[this.supHand];
+          const hb = this.body.j.handB, hs = H[this.supHand === 'fore' && g.def.att && g.def.att.grip ? 'grip' : this.supHand];
           c.save(); c.translate(hb.x, hb.y); c.rotate(a); c.drawImage(hs.cv, hs.ox, hs.oy, hs.w, hs.h); c.restore();
         }
         if (gs.mag && this.magState === 'hand') {

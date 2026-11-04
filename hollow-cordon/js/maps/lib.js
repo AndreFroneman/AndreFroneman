@@ -41,7 +41,7 @@ const MB = {
   // one storey of wall at x with floor at floorY: 'door' | 'window' | 'solid' | 'arch'
   wall: (x, floorY, kind, o = {}) => {
     const w = o.w || 24, mat = o.mat || 'concrete', top = floorY - 210, out = [];
-    if (kind === 'door') { out.push(MB.block(x, top, w, 78, mat)); out.push(MB.door(x + (w - 14) / 2, floorY, o.door || {})); }
+    if (kind === 'door') { const d = o.door || {}; out.push(MB.block(x, top, w, 78, mat)); out.push(MB.door(x + (w - (d.w || (d.blast ? 24 : 14))) / 2, floorY, d)); }
     else if (kind === 'window') { out.push(MB.block(x, top, w, 90, mat), MB.block(x, floorY - 50, w, 50, mat), MB.win(x + (w - 16) / 2, floorY - 120, o.win || {})); }
     else if (kind === 'solid') out.push(MB.block(x, top, w, 210, mat));
     else if (kind === 'arch') out.push(MB.block(x, top, w, 78, mat));

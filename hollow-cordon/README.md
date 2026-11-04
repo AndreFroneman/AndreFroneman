@@ -4,14 +4,22 @@
 
 Hollow Cordon is an original 2D side-view zombie survival shooter. It's built for grim atmosphere and weighty, physical combat. After the Pale Fever outbreak, the military sealed the river city of Marrow Falls behind **Cordon Directive 9**. You play one of four survivors trapped on the wrong side of the line. You fight through hospitals, precincts, steelworks, farms, subway tunnels and the checkpoint where it all went wrong.
 
-- **7 maps**, each with its own lighting, weather, layout and story notes
-- **24 weapons**: melee, pistols and revolvers, SMGs, pump/double/semi/auto shotguns, assault, battle and sniper rifles, and machine guns
+- **10 maps**, each with its own lighting, weather, layout and story notes, including three long bunker levels
+- **30 weapons**: melee, pistols and revolvers, SMGs, pump/double/semi/auto shotguns, assault, battle and sniper rifles, and machine guns
+- **7 weapon attachments** you fit at the workbench: suppressor, weapon light, laser, red-dot, 4× scope, extended magazine and foregrip
 - **10 infected types** with distinct looks, movement, health and behaviour
 - **Location-based damage and heavy gore**: dismemberment, head bursts, gutting, intestines, gibs, persistent blood, and ragdoll corpses you can keep shooting
-- **4 modes**: a seven-chapter story **Campaign**, endless **Survival** (with save & continue), **Sandbox**, and a full visual **Map Creator**
+- **5 modes**: a seven-chapter story **Campaign**, **Blackout** (fight your way out of a pitch-dark bunker), endless **Survival** (with save & continue), **Sandbox**, and a full visual **Map Creator**
 - **Keyboard & mouse or gamepad**: remappable keys, plus a standard controller layout with twin-stick aiming and full menu navigation
 
 All art and audio are generated procedurally at runtime, so the game ships no image or sound files.
+
+### What's new in Version 2
+- **Blackout mode:** three long bunker levels in near-total darkness. Your flashlight is weak and runs on a battery; sometimes the only way to see is to fire and look while the muzzle flash lights the corridor.
+- **Weapon attachments:** suppressors, weapon lights, laser sights, red-dot and 4× optics, extended magazines and foregrips, each shown on the gun model and changing its stats.
+- **Six new guns,** including a suppressed pistol and SMG, a pistol with a built-in light, a carbine, a tactical shotgun and a DMR.
+- **Window climbing fixed:** climbing through a window is a smooth three-part climb that always lands on a floor. If there's nowhere to land on the far side, you get no prompt instead of being teleported.
+- The desktop build is named **Version 2**: `Hollow-Cordon-Version-2.exe` (portable) and `Hollow-Cordon-Version-2-Setup.exe` (installer).
 
 ---
 
@@ -33,7 +41,7 @@ The game is plain HTML5 + JavaScript. It needs **no install, no dependencies and
 The window is locked down: the page is sandboxed without Node access, every permission request is denied, pop-ups and navigation away from the bundled files are blocked, and all outbound requests are cancelled.
 
 - **Ready-made builds:** the **Hollow Cordon desktop app** GitHub Actions workflow builds the following on every pull request and push to `main`:
-  - Windows: an installer `.exe` and a portable `.exe`
+  - Windows: an installer `Hollow-Cordon-Version-2-Setup.exe` and a portable `Hollow-Cordon-Version-2.exe`
   - macOS: a universal `.dmg`
   - Linux: an `.AppImage`
 
@@ -149,6 +157,26 @@ Seven chapters take one survivor across all seven locations, from a hospital war
 
 The objective types are collect, reach, hold-to-work (hold **E** / **Y** at a machine), timed survival with a surge, wave defence, and boss kills.
 
+### Blackout — *Continuity Site 7*
+Fight your way out of a Cold War continuity bunker under Marrow Falls after its power has failed. There are three long, two-storey levels, each 7,200–8,000 units wide. Pick **BLACKOUT** on the main menu.
+- **It is dark.** The only light comes from failing red emergency lamps, the occasional green supply light, and whatever you bring.
+- **Your flashlight is weak.** It has a short, dim beam and runs on a **battery** that drains while it is on (**F** toggles it). Below 25% it flickers, and at 0% it dies.
+- **Muzzle flash is light.** In Blackout every unsuppressed shot lights the room for a split second at more than twice the normal radius, so you sometimes fire just to see what is coming.
+- **Batteries** are hidden around each level, sometimes dropped by infected (about 1 in 9), and sold in supply lockers.
+- **Weapon lights** are brighter and reach twice as far, but drain the battery faster.
+- **Suppressors** keep you quiet, but they also kill the flash you would see by.
+- **Green-lit supply lockers** (**E**) open the shop and the weapon workbench mid-level.
+- **Blast doors** seal each sector until you finish the objective that releases them, and some objectives restore power to a section's lights. Infected only spawn inside your sealed sector, while dormant infected wait in the dark ahead.
+- **Gear, cash and battery carry over** between levels. If you die, you restart the level with what you brought in.
+
+| # | Level | Objectives |
+|---|---|---|
+| 1 | Quarantine Block | Find two fuses, reset door circuit A, reach the security checkpoint, override the checkpoint PLC while the klaxon sounds, reach the freight lift, hold out until it arrives |
+| 2 | Barracks | Reach the armory, recover two duty officers' keycards, cycle Bulkhead B, kill the brute in the generator hall, restart generator 3, climb the ventilation stack |
+| 3 | Surface Gate | Reach continuity command, bypass the gate interlock at the SCADA terminal, recover two override keys, arm the gate bulkhead, hold the ramp for 90 seconds while the surface gate opens (a brute breaks through), run for daylight |
+
+The bunker maps also work in Survival and Sandbox. There, the blast doors start open and the power is on.
+
 ### Survival
 Survive endless, escalating waves. Kills, headshots and dismemberments earn cash and score. Between waves you can open the **Supply Cache** shop for weapons, ammo, armour, medkits, planks and grenades. Infected drop ammo, cash, medkits and planks. Best scores are saved per map.
 
@@ -164,12 +192,13 @@ Difficulty rises through **enemy mix and behaviour**, not just numbers:
 From wave 4, runner packs appear. From wave 5, infected attack from both flanks. Health and speed keep scaling after that. Each map biases the mix: Precinct 9 favours riot officers, Checkpoint Sable favours soldiers, the tunnels favour crawlers, and the steelworks favours bloaters and burners.
 
 ### Sandbox
-Choose the map, survivor, loadout (any of the 24 weapons), allowed infected types, auto-spawn rate, max alive, starting count, difficulty, infinite ammo, god mode, and whether the infected always know where you are. Press **Tab** in game for live tools:
+Choose the map, survivor, loadout (any of the 30 weapons), allowed infected types, auto-spawn rate, max alive, starting count, difficulty, infinite ammo, god mode, and whether the infected always know where you are. Press **Tab** in game for live tools:
 - **Spawn and remove:** spawn any infected type or prop at the cursor; remove individual infected, corpses or props.
 - **Effects:** trigger explosions, start fires, or spawn a horde.
 - **Clean-up:** kill all, clear corpses, or clear blood.
 - **Toggles:** slow motion, freeze AI, god mode, infinite ammo, auto-spawn.
 - **Loadout:** give all weapons, or refill and heal.
+- **Weapon workbench:** fit any attachment for free.
 
 ### Map Creator
 Open it with **MAP CREATOR** from the main menu.
@@ -205,7 +234,7 @@ Open it with **MAP CREATOR** from the main menu.
 | Tomas Reyes | Steelworks electrician | Boards and barricades 50% tougher, +20% melee damage |
 | Wren Hale | Trauma nurse | Medkits heal 60% more; slowly regenerates to 50 HP |
 
-### Weapons (24)
+### Weapons (30)
 Each weapon has its own damage, pellet count, spread and aim spread, bloom, recoil (aim climb, gun kick-back, camera shake), fire rate, fire mode, magazine, reload time and type, penetration power, range falloff, impact force, dismemberment and gib multipliers, movement weight, noise radius, synthesised gunshot and procedurally drawn model.
 
 Weapons animate their reloads: magazines drop out and are re-seated by the support hand, shotguns load shell by shell, revolvers and the double-barrel dump their empties, and pumps and bolts cycle between shots. Every shot ejects a casing and throws muzzle flash, smoke and light.
@@ -228,24 +257,52 @@ Weapons animate their reloads: magazines drop out and are re-seated by the suppo
 | 2 | Keeper .45 | pistol | 42 | semi | 330 | 8 | .45 ACP | 13 | — | $450 |
 | 2 | Magistrate .357 | revolver | 70 | semi | 200 | 6 | .357 Mag | 26 | wave 2 | $900 |
 | 2 | Bastion .500 | revolver | 145 | semi | 120 | 5 | .500 S&W | 48 | wave 5 | $1800 |
+| 2 | Wraith 9 SD | pistol (integral suppressor) | 24 | semi | 440 | 12 | 9mm | 12 | wave 2 | $650 |
+| 2 | Lantern .45 Compact | pistol (integral light) | 40 | semi | 340 | 10 | .45 ACP | 13 | — | $550 |
 | 3 | Vex-9 SMG | SMG | 24 | auto | 800 | 30 | 9mm | 14 | — | $900 |
 | 3 | Ratchet .45 | machine pistol | 28 | auto | 950 | 25 | .45 ACP | 12 | — | $700 |
 | 3 | Kestrel PDW | SMG | 22 | auto | 900 | 50 | 9mm | 18 | wave 4 | $1500 |
+| 3 | Nightjar SD | SMG (integral suppressor) | 22 | auto | 800 | 30 | 9mm | 14 | wave 3 | $1700 |
 | 4 | Parish 12 Pump | pump shotgun | 9×17 | pump | 75 | 6 | 12 gauge | 6 | — | $600 |
 | 4 | Breaker Double | break-action shotgun | 10×20 | semi | 420 | 2 | 12 gauge | 6 | — | $400 |
 | 4 | Thresher Semi-12 | semi-auto shotgun | 8×15 | semi | 220 | 8 | 12 gauge | 6 | wave 4 | $1600 |
 | 4 | Mauler Auto-12 | automatic shotgun | 8×13 | auto | 300 | 20 | 12 gauge | 5 | wave 8 | $3600 |
+| 4 | Cerberus Tactical 12 | box-fed semi-auto shotgun | 15×8 | semi | 260 | 8 | 12 gauge | 6 | wave 5 | $2600 |
 | 5 | Kolba-74 | assault rifle | 36 | auto | 620 | 30 | 7.62x39 | 40 | wave 2 | $1400 |
 | 5 | C7 Carbine | assault rifle | 30 | auto | 760 | 30 | 5.56mm | 34 | wave 3 | $1700 |
 | 5 | Spindle Bullpup | assault rifle | 32 | 3-round burst | 900 | 30 | 5.56mm | 34 | wave 5 | $2200 |
+| 5 | Halberd 5.56 Carbine | assault carbine | 32 | auto | 780 | 30 | 5.56mm | 34 | wave 4 | $2400 |
 | 6 | Graver .308 | battle rifle | 58 | auto | 560 | 20 | .308 Win | 70 | wave 6 | $2800 |
 | 6 | Longshank DMR | marksman rifle (scoped) | 92 | semi | 280 | 10 | .308 Win | 90 | wave 6 | $3000 |
+| 6 | Specter 7.62 DMR | marksman rifle | 80 | semi | 300 | 15 | .308 Win | 60 | wave 6 | $3600 |
 | 7 | Pale Horse .338 | bolt-action sniper (scoped) | 230 | bolt | 60 | 5 | .338 Lapua | 180 | wave 7 | $4200 |
 | 7 | Ironwake .50 | anti-materiel rifle (scoped) | 520 | semi | 90 | 5 | .50 BMG | 460 | wave 9 | $6500 |
 | 8 | Brushfire LMG | light machine gun | 30 | auto | 820 | 100 | 5.56mm | 34 | wave 7 | $4400 |
 | 8 | Grinder GPMG | general-purpose MG | 46 | auto | 650 | 100 | 7.62 belt | 55 | wave 9 | $5500 |
 
 Plus **frag grenades** (G).
+
+### Attachments
+Open the **weapon workbench** from the Supply Cache (Survival, Campaign prep, Blackout supply lockers) or from the Sandbox panel. Pick a gun, buy an attachment once, then fit or remove it freely. Each attachment is drawn on the gun model and changes its stats.
+
+| Attachment | Slot | Price | Effect |
+|---|---|---|---|
+| Suppressor | muzzle | $450 | Noise radius ×0.3, muzzle flash ×0.28, quieter suppressed gunshot; −6% damage, −8% range |
+| Weapon light | rail | $300 | A long, bright beam along the barrel (toggled with **F**); drains the battery faster in Blackout |
+| Laser sight | rail | $350 | A red beam and dot where the round goes; 30% tighter hip fire |
+| Red-dot sight | optic | $400 | 25% tighter aimed fire |
+| 4× scope | optic | $650 | Aims much further down range; aimed spread halved |
+| Extended magazine | mag | $500 | +50% rounds per magazine; reloads 15% slower |
+| Vertical foregrip | grip | $300 | 25% less recoil, 20% less bloom; the support hand moves to the grip |
+
+Each gun only offers the slots that fit it:
+- Revolvers and the double-barrel take nothing.
+- Pistols take no optics.
+- Shotguns and machine guns take no suppressor.
+- Guns with a built-in scope take no optic.
+- The Wraith and Nightjar are already suppressed, and the Lantern already has a light.
+
+Attachments are saved with your loadout.
 
 **Penetration:** each bullet carries penetration power. Bodies, wood (doors, crates, wooden walls, barricades), thin metal and plaster each consume some of it. Glass shatters; concrete, brick, rock and vehicles stop rounds. Rifles punch through wooden farmhouse walls and through lines of infected, while pistol rounds stop in the first body.
 
@@ -294,7 +351,7 @@ Plus **frag grenades** (G).
 - **Gap jumping:** runners, leapers and soldiers jump gaps of up to about 150 px on the same level. Slower types walk around, or drop through and re-route.
 - **Furniture:** infected climb off furniture they can't get past, or wreck it. Pushing a cabinet against a door slows them down but won't trap them.
 
-### Maps (7)
+### Maps (10)
 | Map | Setting |
 |---|---|
 | **St. Halloran Memorial** | Abandoned hospital: two floors, stairwell, morgue, isolation ward, roof hatch, fire escapes, ambulance bay, rain. |
@@ -304,10 +361,13 @@ Plus **frag grenades** (G).
 | **Hollins Farm** | Rural farm: moonlit corn rows, a wooden two-storey farmhouse (rounds go through the walls), a fuel-cluttered yard, a barn with a hay loft. |
 | **Line 4 Tunnels** | Underground: a dead station platform, a maintenance corridor, pitch-black track tunnels and a derailed subway car. |
 | **Checkpoint Sable** | Military checkpoint: refugee queue, HESCO line, razor wire, a floodlit watchtower, the container command post and an overrun camp. |
+| **Site 7: Quarantine Block** | Bunker, level 1: isolation cells, a dead med bay, an observation gallery, decontamination, a lab, a security checkpoint and the freight lift. |
+| **Site 7: Barracks** | Bunker, level 2: a mess hall, barracks, an armory loft, a double-height generator hall with catwalks, power control and the ventilation stack. |
+| **Site 7: Surface Gate** | Bunker, level 1 (top): comms, continuity command and its SCADA terminal, a vehicle bay, a fuel store and the long ramp to the surface blast gate. |
 
 Every map has:
 - **Doors:** open and close with E, bash them, board them up.
-- **Breakable windows.**
+- **Breakable windows** you can climb through once the glass is gone. The prompt only appears when there's floor to land on.
 - **Movable and destructible props.**
 - **Explosive fuel drums and propane tanks:** shoot them once and they may start leaking fire before they blow, which triggers chain reactions.
 - **Placed supplies.**
@@ -336,9 +396,12 @@ A headless browser smoke test boots the game and:
 - exercises the UI flows: setup screens, shop purchase, key remapping, death → game over → restart, and editor → playtest → back to editor;
 - plays the **whole campaign**: new campaign → briefing → every objective of all seven chapters (collect, reach, hold, survive, waves, boss) → chapter complete → ending, and checks that the save and loadout carry over; it also covers death → Retry Chapter;
 - saves a Survival run at a wave break, then **continues** it from the menu;
-- drives the menus and gameplay with a **virtual gamepad**: focus navigation, A/B, stick movement and aim, RT fire, LB/RB switch, A jump, Menu pause.
+- drives the menus and gameplay with a **virtual gamepad**: focus navigation, A/B, stick movement and aim, RT fire, LB/RB switch, A jump, Menu pause;
+- plays **all of Blackout** from the main menu. It checks the dark level start, the supply locker shop (batteries and the workbench) and battery drain, drives every objective in all three levels, checks that each blast door opens and that the save and loadout carry over, and confirms the bunker maps play open and powered in Survival;
+- buys and fits **attachments**, checks their stat changes and integral attachments, and checks that they survive a save round-trip;
+- runs a **window-climb regression**: every open window on four maps, from both sides. Each climb must be continuous (no teleport), cross to the far side and land on a floor. Windows with nowhere to land must not offer the climb.
 
-It fails on any JavaScript error. The last argument picks a scenario (`all`, `survival`, `sandbox`, `ui`, `campaign` or `gamepad`).
+It fails on any JavaScript error. The last argument picks a scenario (`all`, `survival`, `sandbox`, `ui`, `campaign`, `gamepad`, `blackout`, `attachments` or `windows`).
 
 ```bash
 cd hollow-cordon
@@ -358,8 +421,8 @@ hollow-cordon/
   js/game/      body (skeleton/IK/hitboxes), weapons, world (grid/raycasts/decals), fx (particles/gibs/ropes),
                 ragdoll & gore, props (doors/windows/barricades/physics props), combat (ballistics/explosions/melee),
                 actor (character controller & poses), zombie (types/AI/damage), player, game, modes,
-                campaign (chapters, objectives, loadout & save)
-  js/maps/      map library + builder helpers, 7 built-in maps, custom map storage
+                campaign (chapters, objectives, loadout & save), blackout (bunker levels, battery, lockers, blast doors)
+  js/maps/      map library + builder helpers, 10 built-in maps (bunker.js holds the three Site 7 levels), custom map storage
   js/ui/        HUD, menus & overlays
   js/editor/    map creator
   icons/        app icons (generated)        manifest.webmanifest, sw.js   installable offline web app
@@ -373,8 +436,8 @@ hollow-cordon/
 ## Finished vs. planned
 
 **Finished:** everything described above is implemented and playable:
-- 4 modes, including the seven-chapter campaign with its briefings, objectives and ending;
-- 7 maps, 24 weapons plus grenades, and 10 infected types, including the leaper's pin and the Burner;
+- 5 modes, including the seven-chapter campaign with its briefings, objectives and ending, and the three-level Blackout escape;
+- 10 maps, 30 weapons plus grenades, 7 attachments, and 10 infected types, including the leaper's pin and the Burner;
 - the gore system, the map creator, and settings;
 - Survival save & continue;
 - remappable keyboard and mouse controls, plus full gamepad support;
@@ -384,7 +447,7 @@ hollow-cordon/
 - The gamepad layout is fixed; only keyboard and mouse bindings can be remapped. The map creator and the sandbox tool panel need a mouse. There is no touch support, and the game targets desktop browsers.
 - Physics props are axis-aligned boxes. Rotating a prop in the editor is visual only, and solid blocks rotate in 90° steps by swapping width and height.
 - Slow infected (walkers, burners, brutes) don't jump gaps. On a custom map where two areas are linked only by a gap, they drop through and re-route if they can; add stairs, a ladder or a plank if there's no other way round.
-- The campaign has one save slot, and Survival keeps one saved run.
+- The campaign and Blackout have one save slot each, and Survival keeps one saved run.
 - Desktop builds are unsigned (see the first-launch warnings above), and the desktop app doesn't update itself; download a newer build to update.
 - All audio is synthesised. It is distinctive but not photorealistic.
 

@@ -102,10 +102,10 @@ const Lighting = (() => {
     lc.globalAlpha = 1;
     // flashlight
     const p = game.player;
-    if (p && !p.dead && p.flashlight) {
-      const ox = p.x + p.body.j.head.x * p.face, oy = p.y + p.body.j.head.y + 4;
-      let a = p.aimAng;
-      const range = 760, half = 0.42, n = 34;
+    const F = p && !p.dead && p.flashlightSpec ? p.flashlightSpec() : null;
+    const dark = !!(game.mode && game.mode.blackout);
+    if (F) {
+      const { ox, oy, a, range, half } = F, n = 34;
       const pts = [ox, oy];
       for (let i = 0; i <= n; i++) {
         const aa = a - half + (i / n) * half * 2;
@@ -116,16 +116,17 @@ const Lighting = (() => {
       lc.save();
       poly(lc, pts); lc.clip();
       lc.translate(ox, oy); lc.rotate(a);
-      lc.globalAlpha = 1;
-      lc.drawImage(coneSprite(), 0, -range / 2, range, range);
-      lc.drawImage(coneSprite(), 0, -range * 0.3, range * 0.6, range * 0.6);
+      lc.globalAlpha = F.alpha;
+      const wide = range * Math.tan(half) * 2.2;
+      lc.drawImage(coneSprite(), 0, -wide / 2, range, wide);
+      lc.drawImage(coneSprite(), 0, -wide * 0.3, range * 0.6, wide * 0.6);
       lc.restore();
-      // ambient spill around the survivor so they're always readable
-      lc.globalAlpha = 0.5;
+      // ambient spill around the survivor so they're always readable (barely, in a blackout)
+      lc.globalAlpha = dark ? 0.12 : 0.5;
       lc.drawImage(radial('#a0a4b0'), p.x - 140, p.y - 200, 280, 280);
       lc.globalAlpha = 1;
     } else if (p && !p.dead) {
-      lc.globalAlpha = 0.35; lc.drawImage(radial('#8890a0'), p.x - 120, p.y - 180, 240, 240); lc.globalAlpha = 1;
+      lc.globalAlpha = dark ? 0.06 : 0.35; lc.drawImage(radial('#8890a0'), p.x - 120, p.y - 180, 240, 240); lc.globalAlpha = 1;
     }
     lc.globalCompositeOperation = 'source-over';
     lc.setTransform(1, 0, 0, 1, 0, 0);
@@ -165,11 +166,12 @@ const Lighting = (() => {
     }
     // flashlight beam haze
     const p = game.player;
-    if (p && !p.dead && p.flashlight && Settings.data.fog) {
-      const ox = p.x + p.body.j.head.x * p.face, oy = p.y + p.body.j.head.y + 4;
-      ctx.globalAlpha = 0.05;
-      ctx.translate(ox, oy); ctx.rotate(p.aimAng);
-      ctx.drawImage(coneSprite(), 0, -230, 460, 460);
+    const F2 = p && !p.dead && p.flashlightSpec ? p.flashlightSpec() : null;
+    if (F2 && Settings.data.fog) {
+      ctx.globalAlpha = (game.mode && game.mode.blackout ? 0.09 : 0.05) * F2.alpha; // beam visible in the dust
+      ctx.translate(F2.ox, F2.oy); ctx.rotate(F2.a);
+      const r = F2.range * 0.6, w = r * Math.tan(F2.half) * 2.2;
+      ctx.drawImage(coneSprite(), 0, -w / 2, r, w);
       ctx.setTransform(1, 0, 0, 1, 0, 0);
     }
     ctx.restore();

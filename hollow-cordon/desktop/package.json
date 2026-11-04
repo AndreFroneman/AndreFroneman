@@ -1,8 +1,8 @@
 {
   "name": "hollow-cordon",
   "productName": "Hollow Cordon",
-  "version": "1.1.0",
-  "description": "Hollow Cordon — 2D side-view zombie survival shooter (desktop app)",
+  "version": "2.0.0",
+  "description": "Hollow Cordon \u2014 2D side-view zombie survival shooter (desktop app)",
   "author": "Andre Froneman",
   "license": "UNLICENSED",
   "private": true,
@@ -43,7 +43,7 @@
       }
     ],
     "icon": "../icons/icon-1024.png",
-    "artifactName": "Hollow-Cordon-${version}-${os}-${arch}.${ext}",
+    "artifactName": "Hollow-Cordon-Version-2-${os}-${arch}.${ext}",
     "win": {
       "target": [
         {
@@ -61,13 +61,14 @@
       ]
     },
     "portable": {
-      "artifactName": "Hollow-Cordon-${version}-portable.exe"
+      "artifactName": "Hollow-Cordon-Version-2.exe"
     },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
-      "shortcutName": "Hollow Cordon"
+      "shortcutName": "Hollow Cordon",
+      "artifactName": "Hollow-Cordon-Version-2-Setup.exe"
     },
     "mac": {
       "target": [
