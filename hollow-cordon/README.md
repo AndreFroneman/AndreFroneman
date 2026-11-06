@@ -10,7 +10,8 @@ Hollow Cordon is an original 2D side-view zombie survival shooter. It's built fo
 - **10 infected types** with distinct looks, movement, health and behaviour
 - **Location-based damage and heavy gore**: dismemberment, head bursts, gutting, intestines, gibs, persistent blood, and ragdoll corpses you can keep shooting
 - **5 modes**: a seven-chapter story **Campaign**, **Blackout** (fight your way out of a pitch-dark bunker), endless **Survival** (with save & continue), **Sandbox**, and a full visual **Map Creator**
-- **Keyboard & mouse or gamepad**: remappable keys, plus a standard controller layout with twin-stick aiming and full menu navigation
+- **Keyboard & mouse, gamepad or touch**: remappable keys, a standard controller layout with twin-stick aiming and full menu navigation, and on-screen twin-stick touch controls on phones and tablets
+- **Runs everywhere**: in the browser, as an installable web app, as a desktop app (Windows, macOS, Linux) and as an **Android app**
 
 All art and audio are generated procedurally at runtime, so the game ships no image or sound files.
 
@@ -20,12 +21,13 @@ All art and audio are generated procedurally at runtime, so the game ships no im
 - **Six new guns,** including a suppressed pistol and SMG, a pistol with a built-in light, a carbine, a tactical shotgun and a DMR.
 - **Window climbing fixed:** climbing through a window is a smooth three-part climb that always lands on a floor. If there's nowhere to land on the far side, you get no prompt instead of being teleported.
 - The desktop build is named **Version 2**: `Hollow-Cordon-Version-2.exe` (portable) and `Hollow-Cordon-Version-2-Setup.exe` (installer).
+- **Mobile version:** the game plays on phones and tablets, in the browser or as the Android app `Hollow-Cordon-Version-2-Android.apk`, with twin-stick touch controls and a phone-sized layout (see *Phones & tablets* below).
 
 ---
 
 ## Launching the game
 
-The game is plain HTML5 + JavaScript. It needs **no install, no dependencies and no build step**. There are four ways to run it.
+The game is plain HTML5 + JavaScript. It needs **no install, no dependencies and no build step**. You can run it as a desktop app, on a phone or tablet (Android app or browser), as an installed web app, or straight from the folder.
 
 > **Get the files first.** Until the pull request is merged, the game lives on the branch `claude/gracious-brahmagupta-57j7xi`, not on `main`. Clone that branch, or use GitHub's **Code → Download ZIP** while viewing it, and run everything from the `hollow-cordon` folder inside it.
 > ```bash
@@ -53,6 +55,27 @@ The window is locked down: the page is sandboxed without Node access, every perm
   npm start            # run the app
   npm run dist         # build an installer for this OS into desktop/dist/
   ```
+
+### Phones & tablets
+The game detects a touch screen and switches to **touch controls** automatically. Play in landscape; in portrait it asks you to turn the phone.
+
+- **Android app:** install `Hollow-Cordon-Version-2-Android.apk`.
+  - Get it from the **Hollow Cordon Android app** workflow run's **Artifacts** in the repository's **Actions** tab, or build it yourself (below).
+  - Open the file on the phone, and allow your browser or file manager to install unknown apps when Android asks.
+  - The app runs fullscreen and landscape, keeps the screen on, and works offline.
+  - The page is locked down with a content security policy: it can only load its own bundled files and makes no network requests.
+  - The APK is debug-signed. To install a build made on a different machine over an older one, uninstall the old one first; that also clears saves.
+- **iPhone, iPad and any phone browser:** open the game's web address (option B or a static host such as GitHub Pages).
+  - Tap once to start; on Android the game goes fullscreen.
+  - On iPhone, use Safari's **Share → Add to Home Screen** to get a fullscreen, offline app icon.
+- **Phones get lighter defaults** the first time they run: low-quality lighting, no film grain, lower particle, gib and corpse limits, slightly zoomed-in camera, and fewer rendered pixels on high-DPI screens. Change any of them in **Settings**.
+- **Build the Android app yourself** (needs JDK 21 and the Android SDK, with `ANDROID_HOME` set):
+  ```bash
+  cd hollow-cordon/mobile
+  npm install
+  npm run apk          # → android/app/build/outputs/apk/debug/app-debug.apk
+  ```
+  `npm run sync` copies the game into the Capacitor project without building; open `mobile/android` in Android Studio to run it on a device or emulator.
 
 ### Install it as a web app (PWA)
 Serve the folder (option B below) or host it on any static web host, such as GitHub Pages. Chrome and Edge then show **⤓ Install app** on the main menu and in the address bar. The installed game opens in its own fullscreen window, gets a Start-menu, Dock or launcher icon, and works **offline**: a service worker caches every file on first load.
@@ -111,6 +134,23 @@ All actions can be remapped in **Settings → Controls** (keyboard keys or mouse
 | Shop (Survival, between waves) · start next wave | **B** · **N** |
 | Sandbox tools panel | **Tab** |
 | Pause | **Esc** |
+
+### Touch (phones & tablets)
+| Action | Touch |
+|---|---|
+| Move | Drag anywhere on the left side; the stick appears under your thumb |
+| Sprint | Push the move stick past its ring |
+| Ladders & stairs / crouch & drop through | Move stick up / down |
+| Aim | Drag on the right side (with gentle aim assist) |
+| Fire | Push the aim stick past half-way. Held, it keeps firing, including semi-auto, pump and bolt guns |
+| Steady aim (look further) | **AIM** (toggle) |
+| Jump · interact (hold for objectives) · reload · quick melee | **JUMP** · **USE** · **RELOAD** · **MELEE** |
+| Next weapon | **SWAP**, or tap the weapon readout at the top right |
+| Flashlight · grenade · medkit | **LIGHT** · **GREN** · **MED** |
+| Shop · start wave / move out · sandbox tools | **SHOP** · **GO** · **TOOLS** (shown when available) |
+| Pause | **II** (top right) |
+
+**Settings → Touch controls** has Auto/On/Off, control opacity, vibration, and the fullscreen/landscape lock. In touch mode the HUD moves to the top edge so your thumbs don't cover it, and prompts name the touch buttons, for example "[USE] Open door".
 
 ### Gamepad
 Any standard-mapping controller (Xbox, PlayStation, most generic pads) works in Chrome, Edge and Firefox. Connect it and press a button. Prompts switch to pad glyphs while it's in use, and moving the mouse switches back. The layout is fixed, and it's also listed on the Controls screen.
@@ -399,9 +439,14 @@ A headless browser smoke test boots the game and:
 - drives the menus and gameplay with a **virtual gamepad**: focus navigation, A/B, stick movement and aim, RT fire, LB/RB switch, A jump, Menu pause;
 - plays **all of Blackout** from the main menu. It checks the dark level start, the supply locker shop (batteries and the workbench) and battery drain, drives every objective in all three levels, checks that each blast door opens and that the save and loadout carry over, and confirms the bunker maps play open and powered in Survival;
 - buys and fits **attachments**, checks their stat changes and integral attachments, and checks that they survive a save round-trip;
-- runs a **window-climb regression**: every open window on four maps, from both sides. Each climb must be continuous (no teleport), cross to the far side and land on a floor. Windows with nowhere to land must not offer the climb.
+- runs a **window-climb regression**: every open window on four maps, from both sides. Each climb must be continuous (no teleport), cross to the far side and land on a floor. Windows with nowhere to land must not offer the climb;
+- plays on an emulated **phone** (Pixel 7, landscape) with real multi-touch:
+  - It checks that touch mode and the lighter phone defaults switch on, and taps through the menus into Survival.
+  - It moves with the left thumb while aiming and firing with the right thumb, and the held semi-auto pistol must keep firing.
+  - It checks that nothing is still held after release, then presses jump, swap, use on a door and pause.
+  - It toggles the flashlight in Blackout and checks the portrait "turn your phone" prompt.
 
-It fails on any JavaScript error. The last argument picks a scenario (`all`, `survival`, `sandbox`, `ui`, `campaign`, `gamepad`, `blackout`, `attachments` or `windows`).
+It fails on any JavaScript error. The last argument picks a scenario (`all`, `survival`, `sandbox`, `ui`, `campaign`, `gamepad`, `blackout`, `attachments`, `windows` or `touch`).
 
 ```bash
 cd hollow-cordon
@@ -423,12 +468,14 @@ hollow-cordon/
                 actor (character controller & poses), zombie (types/AI/damage), player, game, modes,
                 campaign (chapters, objectives, loadout & save), blackout (bunker levels, battery, lockers, blast doors)
   js/maps/      map library + builder helpers, 10 built-in maps (bunker.js holds the three Site 7 levels), custom map storage
-  js/ui/        HUD, menus & overlays
+  js/ui/        HUD, menus & overlays, touch controls
   js/editor/    map creator
   icons/        app icons (generated)        manifest.webmanifest, sw.js   installable offline web app
   desktop/      Electron desktop app (main.js, electron-builder config in package.json)
+  mobile/       Android app: Capacitor 8 project (capacitor.config.json, scripts/copy-web.mjs, android/)
   tools/        smoke-test.mjs (Playwright), serve.mjs (static server)
 .github/workflows/desktop.yml   builds the Windows / macOS / Linux desktop apps
+.github/workflows/android.yml   builds the Android .apk
 ```
 
 ---
@@ -444,11 +491,14 @@ hollow-cordon/
 - menus, HUD, and the pause and restart flow.
 
 **Known limitations:**
-- The gamepad layout is fixed; only keyboard and mouse bindings can be remapped. The map creator and the sandbox tool panel need a mouse. There is no touch support, and the game targets desktop browsers.
+- The gamepad and touch layouts are fixed; only keyboard and mouse bindings can be remapped.
+- The map creator is built for a mouse and keyboard. On a touch screen it asks before opening.
+- In Sandbox, an armed tool takes taps on the game view; disarm it to get the sticks back.
+- There's no iOS app build; on iPhone and iPad, play in Safari or add it to the home screen.
 - Physics props are axis-aligned boxes. Rotating a prop in the editor is visual only, and solid blocks rotate in 90° steps by swapping width and height.
 - Slow infected (walkers, burners, brutes) don't jump gaps. On a custom map where two areas are linked only by a gap, they drop through and re-route if they can; add stairs, a ladder or a plank if there's no other way round.
 - The campaign and Blackout have one save slot each, and Survival keeps one saved run.
-- Desktop builds are unsigned (see the first-launch warnings above), and the desktop app doesn't update itself; download a newer build to update.
+- Desktop builds are unsigned (see the first-launch warnings above), and the Android APK is debug-signed. Neither updates itself; download a newer build to update.
 - All audio is synthesised. It is distinctive but not photorealistic.
 
 **Ideas for future work:** co-op, more campaign chapters and maps, and a remappable gamepad layout.

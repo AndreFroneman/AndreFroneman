@@ -3,7 +3,7 @@
 //   (serve the folder first, e.g. `python3 -m http.server 8000`)
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
-const { chromium } = require('playwright');
+const { chromium, devices } = require('playwright');
 
 const base = process.argv[2] || 'http://localhost:8000/';
 const shots = process.argv[3] || null;
@@ -416,6 +416,84 @@ if (scenario === 'all' || scenario === 'windows') {
   }
   if (tested < 6) throw new Error('too few window climbs tested: ' + tested);
   console.log('windows OK', JSON.stringify({ climbed: tested, noLandingRefused: refused }));
+}
+if (scenario === 'all' || scenario === 'touch') {
+  // phone: a landscape Pixel 7 with real multi-touch (two thumbs at once via CDP touch events)
+  const ctx = await browser.newContext({ ...devices['Pixel 7 landscape'] });
+  const mp = await ctx.newPage();
+  mp.on('pageerror', (e) => errors.push('touch pageerror: ' + e.message + '\n' + (e.stack || '')));
+  mp.on('console', (m) => { if (m.type() === 'error') errors.push('touch console: ' + m.text()); });
+  const cdp = await ctx.newCDPSession(mp);
+  const touch = (type, pts) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: pts.map(([x, y, id]) => ({ x, y, id })) });
+  const vp = mp.viewportSize();
+  await mp.goto(base);
+  await sleep(500);
+  await mp.touchscreen.tap(vp.width / 2, vp.height / 2);
+  await mp.waitForFunction(() => typeof App !== 'undefined' && App.state === 'menu', null, { timeout: 60000 });
+  await sleep(500);
+  const t0 = await mp.evaluate(() => ({ using: Touch.using, tuned: Settings.data.mobileTuned, px: App.canvas.width * App.canvas.height }));
+  if (!t0.using || !t0.tuned || t0.px > 1.3e6) throw new Error('touch mode not active on a phone: ' + JSON.stringify(t0));
+  if (shots) await mp.screenshot({ path: `${shots}/30-touch-menu.png` });
+  await mp.tap('.menu button:has-text("SURVIVAL")');
+  await mp.tap('button:has-text("START SURVIVAL")');
+  await sleep(800);
+  await mp.evaluate(() => { const g = App.game, p = g.player; g.zombies.length = 0; p.god = true; p.selectId('p9'); p.x = 2000; p.y = 1100; });
+  if (!(await mp.evaluate(() => !document.getElementById('touch').classList.contains('hidden')))) throw new Error('touch controls hidden in game');
+  // left thumb moves, right thumb aims and fires (held: the semi-auto pistol keeps firing)
+  const lx = vp.width * 0.18, ly = vp.height * 0.7, rx = vp.width * 0.68, ry = vp.height * 0.55;
+  const x0 = await mp.evaluate(() => App.game.player.x);
+  await touch('touchStart', [[lx, ly, 1]]);
+  for (let i = 1; i <= 4; i++) { await touch('touchMove', [[lx + i * 10, ly, 1]]); await sleep(16); }
+  await sleep(300);
+  const mag0 = await mp.evaluate(() => App.game.player.gun.mag);
+  await touch('touchStart', [[lx + 40, ly, 1], [rx, ry, 2]]);
+  for (let i = 1; i <= 6; i++) { await touch('touchMove', [[lx + 40, ly, 1], [rx + i * 12, ry, 2]]); await sleep(16); }
+  await sleep(900);
+  const mid = await mp.evaluate(() => ({ x: App.game.player.x, mag: App.game.player.gun.mag, right: Input.act('moveRight'), fire: Input.act('fire'), mouse: Input.down.has('Mouse0') }));
+  if (shots) await mp.screenshot({ path: `${shots}/31-touch-twin-stick.png` });
+  await touch('touchEnd', []);
+  await sleep(150);
+  const rel = await mp.evaluate(() => ({ fire: Input.act('fire'), right: Input.act('moveRight') }));
+  if (!(mid.x > x0 + 20) || !mid.right) throw new Error('touch move failed: ' + JSON.stringify({ x0, mid }));
+  if (!(mid.mag <= mag0 - 3) || !mid.fire || mid.mouse) throw new Error('touch aim/fire failed: ' + JSON.stringify({ mag0, mid }));
+  if (rel.fire || rel.right) throw new Error('touch input stuck after release: ' + JSON.stringify(rel));
+  const tapEl = async (sel) => { const b = await mp.locator(sel).boundingBox(); await touch('touchStart', [[b.x + b.width / 2, b.y + b.height / 2, 9]]); await sleep(60); await touch('touchEnd', []); await sleep(120); };
+  await tapEl('.b-jump');
+  const air = await mp.evaluate(() => !App.game.player.grounded);
+  await sleep(900);
+  await mp.evaluate(() => App.game.player.give('parish', 2));
+  const w0 = await mp.evaluate(() => App.game.player.gun.def.id);
+  await tapEl('.b-swap'); await sleep(300);
+  const w1 = await mp.evaluate(() => App.game.player.gun.def.id);
+  const door = await mp.evaluate(() => { const g = App.game, p = g.player, d = g.props.find((q) => q.isDoor && !q.blast && !q.open); p.x = d.cx - 30; p.y = d.y + d.h; p.vx = 0; return d.id; });
+  await sleep(300);
+  const label = await mp.evaluate(() => App.game.player.interactTarget && App.game.player.interactTarget.label);
+  await tapEl('.b-use');
+  const opened = await mp.evaluate((id) => App.game.props.find((q) => q.id === id).open, door);
+  await tapEl('.b-pause');
+  const paused = await mp.evaluate(() => !!UI.pauseEl && document.getElementById('touch').classList.contains('hidden'));
+  await mp.tap('.pause button:has-text("RESUME")');
+  await sleep(200);
+  if (!air || w1 === w0 || !opened || !paused || !/USE/.test(label || '')) throw new Error('touch buttons failed: ' + JSON.stringify({ air, w0, w1, opened, paused, label }));
+  // Blackout on a phone: light button toggles the flashlight, prompts read the touch button names
+  await mp.evaluate(() => { BlackoutSave.clear(); BlackoutSave.fresh('brandt', 'normal'); App.start('blackout', { chapter: 0, survivor: 'brandt', difficulty: 'normal' }); UI.pop(); Input.clear(); App.game.mode.prepT = 0; });
+  await sleep(500);
+  const l0 = await mp.evaluate(() => App.game.player.flashlight);
+  await tapEl('.b-light');
+  const l1 = await mp.evaluate(() => App.game.player.flashlight);
+  if (l0 === l1) throw new Error('LIGHT button did not toggle the flashlight');
+  if (shots) await mp.screenshot({ path: `${shots}/32-touch-blackout.png` });
+  // portrait asks for landscape
+  await mp.evaluate(() => document.fullscreenElement && document.exitFullscreen()).catch(() => {});
+  await sleep(300);
+  await mp.setViewportSize({ width: vp.height, height: vp.width });
+  await sleep(300);
+  const rot = await mp.evaluate(() => getComputedStyle(document.getElementById('rotate')).display);
+  if (rot !== 'flex') throw new Error('portrait rotate prompt not shown: ' + rot);
+  const appErrT = await mp.evaluate(() => App.errors || 0);
+  if (appErrT) errors.push('touch App.errors=' + appErrT);
+  await ctx.close();
+  console.log('touch OK', JSON.stringify({ moved: Math.round(mid.x - x0), fired: mag0 - mid.mag, jumped: air, swapped: [w0, w1], door: opened, label }));
 }
 const appErr = await page.evaluate(() => App.errors || 0);
 await browser.close();

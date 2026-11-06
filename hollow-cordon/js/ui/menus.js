@@ -138,7 +138,7 @@ const UI = {
         this.btn('BLACKOUT', () => this.campaignMenu(CAMPAIGNS.blackout), 'big blackout'),
         this.btn('SURVIVAL', () => this.survivalSetup(), 'big'),
         this.btn('SANDBOX', () => this.sandboxSetup(), 'big'),
-        this.btn('MAP CREATOR', () => App.openEditor(), 'big'),
+        this.btn('MAP CREATOR', () => (Touch.using ? this.ask('The map creator is built for a mouse and keyboard. Open it anyway?', () => App.openEditor(), 'OPEN') : App.openEditor()), 'big'),
         this.btn('SETTINGS', () => this.settings()),
         this.btn('CONTROLS', () => this.controls()),
         this.btn('ABOUT', () => this.about()),
@@ -361,6 +361,11 @@ const UI = {
           toggle('Show FPS', D.showFps, set('showFps')),
           h('h3', {}, 'Gameplay'),
           toggle('Auto-reload on empty', D.autoReload, set('autoReload')),
+          h('h3', {}, 'Touch controls'),
+          select([['auto', 'Auto (phones & tablets)'], ['on', 'Always on'], ['off', 'Off']], D.touchControls || 'auto', (v) => { Settings.set('touchControls', v); if (v === 'off') Touch.deactivate(); else if (v === 'on') Touch.activate(); }, 'On-screen controls'),
+          slider('Control opacity', D.touchOpacity === undefined ? 0.6 : D.touchOpacity, 0.15, 1, 0.05, (v) => { Settings.set('touchOpacity', v); Touch.applyLook(); }),
+          toggle('Vibrate on button press', D.touchVibrate !== false, set('touchVibrate')),
+          toggle('Fullscreen & landscape on phones', D.touchFullscreen !== false, set('touchFullscreen')),
           h('div', { class: 'row' }, this.btn('Reset all settings', () => { Settings.resetAll(); Sfx.applyVolumes(); this.pop(); this.settings(onBack); }, 'ghost')))),
       h('div', { class: 'row end' }, this.btn('DONE', () => { this.pop(); if (onBack) onBack(); else this.mainMenu(); }, 'primary')));
     if (!onBack) this.clear();
@@ -398,7 +403,15 @@ const UI = {
       ['Medkit', 'D-pad ←'], ['Grenade', 'D-pad →'], ['Shop / sandbox tools', 'View'], ['Pause', 'Menu'], ['Menus', 'D-pad / stick · A select · B back'],
     ];
     const pad = h('div', { class: 'binds pad' }, ...padRows.map(([a, b]) => h('div', { class: 'bind' }, h('span', {}, a), h('span', { class: 'padkey' }, b))));
+    const touchRows = [
+      ['Move (left side of the screen)', 'Drag anywhere'], ['Sprint', 'Push past the ring'], ['Ladders & stairs / crouch, drop', 'Stick up / down'],
+      ['Aim (right side, aim assist)', 'Drag'], ['Fire', 'Push past half-way'], ['Steady aim (toggle)', 'AIM'],
+      ['Jump', 'JUMP'], ['Interact / hold for objectives', 'USE'], ['Reload', 'RELOAD'], ['Quick melee / break free', 'MELEE'],
+      ['Next weapon', 'SWAP or tap the weapon readout'], ['Flashlight · grenade · medkit', 'LIGHT · GREN · MED'], ['Shop · start wave · sandbox tools', 'SHOP · GO · TOOLS'], ['Pause', 'II (top right)'],
+    ];
+    const touch = h('div', { class: 'binds pad' }, ...touchRows.map(([a, b]) => h('div', { class: 'bind' }, h('span', {}, a), h('span', { class: 'padkey' }, b))));
     const el = this.screen('CONTROLS',
+      Touch.using ? h('h3', {}, 'Touch screen') : null, Touch.using ? touch : null,
       h('p', { class: 'hint' }, 'Click a binding, then press a key or mouse button. Esc cancels. Fixed: mouse aims · mouse wheel cycles weapons · Esc pauses.'),
       rows,
       h('h3', {}, 'Gamepad ' + (Input.pad.connected ? '— connected: ' + Input.pad.id.slice(0, 48) : '— connect any standard controller and press a button')),
@@ -450,7 +463,7 @@ const UI = {
   },
   showNote(n) {
     if (this.note) return;
-    const el = h('div', { class: 'screen notebg', onclick: () => this.closeNote() }, h('div', { class: 'note' }, h('div', { class: 'note-t' }, n.title), h('div', { class: 'note-b' }, n.text), h('div', { class: 'note-f' }, 'click or press Esc / E to close')));
+    const el = h('div', { class: 'screen notebg', onclick: () => this.closeNote() }, h('div', { class: 'note' }, h('div', { class: 'note-t' }, n.title), h('div', { class: 'note-b' }, n.text), h('div', { class: 'note-f' }, Touch.using ? 'tap to close' : 'click or press Esc / ' + Input.label('interact') + ' to close')));
     this.note = el; this.show(el, true);
     Sfx.play('ui_click');
   },

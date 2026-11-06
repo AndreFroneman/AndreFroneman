@@ -483,12 +483,12 @@ class Player {
       if (p.dead) continue;
       let d, act = null;
       if (p.isDoor && p.blast) { d = Math.abs(p.cx - px) - p.w / 2; if (Math.abs(p.cy - py) > 80 || p.open) continue; act = 'Blast door (sealed)'; }
-      else if (p.isDoor) { d = Math.abs(p.cx - px) - p.w / 2; if (Math.abs(p.cy - py) > 80) continue; act = p.boards > 0 ? null : p.open ? 'Close door' : 'Open door'; if (!p.open && this.planks > 0 && p.boards < 3 && (this.planksFree || this.planks > 0)) act = act + '  ·  hold E: board up'; }
+      else if (p.isDoor) { d = Math.abs(p.cx - px) - p.w / 2; if (Math.abs(p.cy - py) > 80) continue; act = p.boards > 0 ? null : p.open ? 'Close door' : 'Open door'; if (!p.open && this.planks > 0 && p.boards < 3 && (this.planksFree || this.planks > 0)) act = act + '  ·  hold ' + Input.label('interact') + ': board up'; }
       else if (p.isWindow) {
         d = Math.abs(p.cx - px) - p.w / 2; if (py < p.y - 60 || py > p.y + p.h + 80) continue;
         const canVault = !p.solid && !!this.windowLanding(p, p.cx > this.x ? 1 : -1);
         act = p.solid || !canVault ? (p.boards < 3 && this.planks > 0 ? 'Board up window' : null) : 'Climb through window';
-        if (canVault && p.boards < 3 && this.planks > 0) act += '  ·  hold E: board up';
+        if (canVault && p.boards < 3 && this.planks > 0) act += '  ·  hold ' + Input.label('interact') + ': board up';
       }
       else if (p.isBarricade) { d = Math.abs(p.cx - px) - p.w / 2; if (Math.abs(p.cy - py) > 90) continue; act = p.hp < p.maxHp && this.planks > 0 ? `Repair barricade (${Math.round(Math.max(0, p.hp) / p.maxHp * 100)}%)` : null; }
       else continue;

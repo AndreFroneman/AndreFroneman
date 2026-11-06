@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <title>Hollow Cordon</title>
   <meta name="description" content="2D side-view zombie survival shooter. Marrow Falls is sealed. You are inside.">
   <meta name="theme-color" content="#07080a">
@@ -17,6 +17,7 @@
 <body>
   <canvas id="game"></canvas>
   <div id="ui"></div>
+  <div id="rotate"><div class="rot-phone"></div><div>Turn your phone sideways to play</div></div>
 
   <!-- core -->
   <script src="js/core/util.js"></script>
@@ -58,6 +59,7 @@
   <!-- ui -->
   <script src="js/ui/hud.js"></script>
   <script src="js/ui/menus.js"></script>
+  <script src="js/ui/touch.js"></script>
   <script src="js/editor/editor.js"></script>
   <script src="js/main.js"></script>
 </body>

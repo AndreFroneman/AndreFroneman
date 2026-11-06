@@ -115,10 +115,11 @@ const Input = {
     else if (d) { this.navT -= dt; if (this.navT <= 0) { this.navT = 0.11; this.navOut = d; } }
   },
   // right stick → aim point around the player (world space), written into mx/my
-  padAim(game, dt) {
+  // (src: the stick values to aim with — the pad, or the touch sticks)
+  padAim(game, dt, src = this.pad) {
     const p = game.player;
     if (!p || p.dead) return;
-    const { rx, ry, lx } = this.pad;
+    const { rx, ry, lx } = src;
     const m = Math.hypot(rx, ry);
     const aimHeld = this.act('aim');
     let want = 170;
@@ -153,13 +154,15 @@ const Input = {
       if (a && a.playEffect) { try { a.playEffect('dual-rumble', { duration: ms, strongMagnitude: clamp(strength, 0, 1), weakMagnitude: clamp(strength * 1.3, 0, 1) }); } catch (e) { /* unsupported */ } return; }
     }
   },
-  // prompt label for an action: pad glyph while the pad is in use
+  // prompt label for an action: pad glyph while the pad is in use, button name on touch
   label(action) {
     if (this.pad.using && PAD_BINDINGS[action]) return PAD_LABELS[PAD_BINDINGS[action][0]] || PAD_BINDINGS[action][0];
+    if (typeof Touch !== 'undefined' && Touch.using && TOUCH_LABELS[action]) return TOUCH_LABELS[action];
     return keyLabel((Settings.data.bindings[action] || [])[0]);
   },
 
-  bound(action) { const b = Settings.data.bindings[action] || []; const pb = PAD_BINDINGS[action]; return pb ? b.concat(pb) : b; },
+  // keyboard/mouse bindings + the fixed pad layout + the on-screen touch control ("T_<action>")
+  bound(action) { const b = Settings.data.bindings[action] || []; const pb = PAD_BINDINGS[action]; return (pb ? b.concat(pb) : b).concat('T_' + action); },
   act(action) { for (const c of this.bound(action)) if (this.down.has(c)) return true; return false; },
   actPressed(action) { for (const c of this.bound(action)) if (this.pressed.has(c)) return true; return false; },
   actReleased(action) { for (const c of this.bound(action)) if (this.released.has(c)) return true; return false; },

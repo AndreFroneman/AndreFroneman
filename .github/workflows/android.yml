@@ -1,0 +1,51 @@
+name: Hollow Cordon Android app
+
+# Builds the Android app (a Capacitor wrapper around the web game) as an
+# installable .apk. Download it from the run's "Artifacts" section and
+# sideload it ("Install unknown apps"). The build is debug-signed.
+on:
+  pull_request:
+    paths: ['hollow-cordon/**', '.github/workflows/android.yml']
+  push:
+    branches: [main]
+    paths: ['hollow-cordon/**', '.github/workflows/android.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  apk:
+    name: Build APK
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: hollow-cordon/mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: hollow-cordon/mobile/package-lock.json
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - run: npm ci
+      - name: Copy the game in and sync the Android project
+        run: npm run sync
+      - name: Build
+        working-directory: hollow-cordon/mobile/android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon --stacktrace
+          mkdir -p ../dist
+          cp app/build/outputs/apk/debug/app-debug.apk ../dist/Hollow-Cordon-Version-2-Android.apk
+          ls -la ../dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Hollow-Cordon-Android
+          path: hollow-cordon/mobile/dist/Hollow-Cordon-Version-2-Android.apk
+          if-no-files-found: error
+          retention-days: 30

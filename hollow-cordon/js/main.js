@@ -19,6 +19,7 @@ const App = {
     window.addEventListener('resize', () => this.resize());
     Input.init(this.canvas);
     UI.init(document.getElementById('ui'), this.canvas);
+    Touch.init();
     UI.boot(async (progress) => {
       await Sfx.init(progress);
       genWeaponSounds();
@@ -29,9 +30,11 @@ const App = {
     requestAnimationFrame((t) => this.loop(t));
   },
   resize() {
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    // phones and tablets render fewer pixels: high-DPI screens would otherwise cost 3-4x the fill rate
+    const mobile = typeof Touch !== 'undefined' && Touch.using && Touch.isTouchDevice();
+    const dpr = Math.min(window.devicePixelRatio || 1, mobile ? 1.5 : 2);
     let w = window.innerWidth * dpr, h = window.innerHeight * dpr;
-    const maxPx = 2.4e6;
+    const maxPx = mobile ? 1.25e6 : 2.4e6;
     if (w * h > maxPx) { const k = Math.sqrt(maxPx / (w * h)); w *= k; h *= k; }
     this.canvas.width = Math.max(320, w | 0); this.canvas.height = Math.max(200, h | 0);
   },
@@ -103,6 +106,8 @@ const App = {
     this.last = t;
     try {
       Input.pollPad(dt);
+      Touch.update();
+      if (this.state === 'game' && this.game && Touch.using && !Input.pad.using && !UI.anyOverlay()) Touch.aim(this.game, dt);
       if (Input.pad.using) {
         const overlay = UI.anyOverlay();
         if (this.state === 'game' && this.game && !overlay) Input.padAim(this.game, dt);
@@ -137,7 +142,7 @@ window.addEventListener('load', () => App.init());
 
 // ---- installable web app: offline service worker + "Install app" button.
 // Only over http(s): the desktop app and file:// launches don't need it.
-if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
+if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol) && !window.Capacitor) { // the Android app ships its files; no offline cache needed
   try { navigator.serviceWorker.register('sw.js').catch(() => {}); } catch (e) { /* sandboxed page */ }
 }
 window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); UI.installPrompt = e; UI.refreshInstall(); });

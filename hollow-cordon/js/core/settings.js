@@ -51,6 +51,11 @@ const DEFAULT_SETTINGS = {
   cameraZoom: 1.0,
   showFps: false,
   autoReload: true,
+  touchControls: 'auto', // auto (on phones/tablets) | on | off
+  touchOpacity: 0.6,
+  touchVibrate: true,
+  touchFullscreen: true,
+  mobileTuned: false,    // lighter defaults applied once on the first touch device run
   bindings: null,        // filled from ACTIONS
 };
 

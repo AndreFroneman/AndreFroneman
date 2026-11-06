@@ -38,11 +38,16 @@ class HUD {
       ctx.fillStyle = 'rgba(0,0,0,0.75)'; ctx.fillText(t, x + 1.5 * s, y + 1.5 * s);
       ctx.fillStyle = col; ctx.fillText(t, x, y);
     };
+    // on touch screens the thumbs cover the bottom corners: vitals and weapon move to the top edge
+    const T = typeof Touch !== 'undefined' && Touch.using;
     // ------------------------------------------------- mode info
     const info = g.mode.hudInfo ? g.mode.hudInfo() : null;
     if (info) {
-      let y = 30 * s;
-      for (const [k, v] of info.left || []) { txt(k, 22 * s, y, '#8a8270', 11); txt(String(v), 22 * s, y + 20 * s, '#efe4c8', 20); y += 46 * s; }
+      let y = 30 * s, x = 22 * s;
+      for (const [k, v] of info.left || []) {
+        txt(k, x, y, '#8a8270', 11); txt(String(v), x, y + 20 * s, '#efe4c8', 20);
+        if (T) x += 96 * s; else y += 46 * s;
+      }
       if (info.center) txt(info.center, cw / 2, 34 * s, '#e8dcc0', 18);
       if (info.centerSub) txt(info.centerSub, cw / 2, 54 * s, '#9a927e', 12, 'center', 'normal');
       if (info.combo) txt(info.combo, cw / 2, 82 * s, '#e8a050', 22, 'center');
@@ -50,7 +55,7 @@ class HUD {
     if (Settings.data.showFps) txt(this.fps + ' FPS', cw - 16 * s, 24 * s, '#8a8a80', 12, 'right');
     if (p) {
       // ------------------------------------------------- vitals
-      const bx = 22 * s, by = ch - 62 * s, bw = 230 * s, bh = 14 * s;
+      const bx = 22 * s, by = T ? 76 * s : ch - 62 * s, bw = 230 * s, bh = 14 * s;
       const bar = (y, frac, col, h = bh, back = 'rgba(0,0,0,0.55)') => {
         ctx.fillStyle = back; ctx.fillRect(bx, y, bw, h);
         ctx.fillStyle = col; ctx.fillRect(bx + 2 * s, y + 2 * s, Math.max(0, (bw - 4 * s) * clamp(frac, 0, 1)), h - 4 * s);
@@ -64,9 +69,9 @@ class HUD {
       bar(by + 18 * s, p.stamina / 100, '#8a7a3a', 6 * s);
       let ix = bx;
       const item = (label, n, col) => { txt(label + ' ' + n, ix, by + 44 * s, n > 0 ? col : '#5a564a', 12); ix += 74 * s; };
-      item('MED[' + Input.label('medkit') + ']', p.medkits, '#d89090');
+      item(T ? 'MED' : 'MED[' + Input.label('medkit') + ']', p.medkits, '#d89090');
       item('PLANK', p.planksFree ? '∞' : p.planks, '#c8a070');
-      item('GREN[' + Input.label('grenade') + ']', p.grenades, '#b8c090');
+      item(T ? 'GREN' : 'GREN[' + Input.label('grenade') + ']', p.grenades, '#b8c090');
       if (g.mode.blackout) {
         // flashlight battery: drains while the light is on, flashes when nearly flat
         const bw2 = 90 * s, bh2 = 9 * s, bx2 = ix + 6 * s, by2 = by + 36 * s, b = (p.battery || 0) / 100;
@@ -74,13 +79,16 @@ class HUD {
         ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(bx2, by2, bw2, bh2);
         if (!(low && Math.sin(g.time * 10) < 0 && p.flashlight)) { ctx.fillStyle = col; ctx.fillRect(bx2 + 1, by2 + 1, (bw2 - 2) * b, bh2 - 2); }
         ctx.fillStyle = 'rgba(200,200,190,0.6)'; ctx.fillRect(bx2 + bw2, by2 + 2.5 * s, 3 * s, bh2 - 5 * s);
-        txt((p.flashlight ? 'LIGHT ' : 'light ') + '[' + Input.label('flashlight') + '] ' + Math.ceil(b * 100) + '%', bx2 + bw2 + 8 * s, by2 + 8 * s, p.flashlight ? col : '#6a6a5a', 11);
+        txt((p.flashlight ? 'LIGHT ' : 'light ') + (T ? '' : '[' + Input.label('flashlight') + '] ') + Math.ceil(b * 100) + '%', bx2 + bw2 + 8 * s, by2 + 8 * s, p.flashlight ? col : '#6a6a5a', 11);
       }
       // ------------------------------------------------- weapon
       const gun = p.gun;
       if (gun) {
         const def = gun.def, gs = GunArt.get(def);
-        const rx = cw - 24 * s;
+        let rx = cw - 24 * s;
+        // touch: sit left of the pause button and use the top edge as the baseline
+        if (T) { const k = cw / Math.max(1, window.innerWidth), ih = window.innerHeight; rx = cw - (clamp(ih * 0.105, 38, 58) + ih * 0.03) * k - 10 * s; }
+        const ch = T ? 150 * s : ctx.canvas.height;
         const iw = Math.min(150 * s, gs.icon.width / GunArt.RES * 1.9 * s), ih = iw * gs.icon.height / gs.icon.width;
         ctx.globalAlpha = 0.9; ctx.drawImage(gs.icon, rx - iw, ch - 110 * s - ih / 2, iw, ih); ctx.globalAlpha = 1;
         txt(def.name.toUpperCase(), rx, ch - 76 * s, '#cfc4a8', 13, 'right');
@@ -153,7 +161,7 @@ class HUD {
       if (this.bannerSub) txt(this.bannerSub, cw / 2, y + 28 * s, '#a89c84', 14, 'center', 'normal');
       ctx.globalAlpha = 1;
     }
-    let ty = ch - 120 * s;
+    let ty = (typeof Touch !== 'undefined' && Touch.using) ? ch * 0.66 : ch - 120 * s;
     for (const t of this.toasts) { ctx.globalAlpha = Math.min(1, t.t * 2); txt(t.m, cw / 2, ty, '#e8c890', 14, 'center'); ty -= 22 * s; }
     ctx.globalAlpha = 1;
     ctx.restore();
