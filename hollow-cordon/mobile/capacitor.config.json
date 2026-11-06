@@ -1,0 +1,12 @@
+{
+  "appId": "com.andrefroneman.hollowcordon",
+  "appName": "Hollow Cordon",
+  "webDir": "www",
+  "backgroundColor": "#07080a",
+  "android": {
+    "backgroundColor": "#07080a",
+    "allowMixedContent": false,
+    "captureInput": false,
+    "webContentsDebuggingEnabled": false
+  }
+}
